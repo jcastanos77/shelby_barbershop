@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'admin_dashboard.dart';
 import 'booking_page.dart';
-import 'services_page.dart';
-import 'concact_page.dart';
-import 'galeria_page.dart';
-import 'home_page.dart';
 
 class MainScaffold extends StatefulWidget {
   @override
@@ -121,8 +118,237 @@ class _MainScaffoldState extends State<MainScaffold>
     }
   }
 
+  // Función para mostrar el login de barberos
+  void _showBarberLogin(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _buildBarberLoginModal(context),
+    );
+  }
+
+  // Modal de login para barberos
+  Widget _buildBarberLoginModal(BuildContext context) {
+    final TextEditingController codeController = TextEditingController();
+    bool isLoading = false;
+
+    // Códigos de acceso para barberos
+    final Map<String, Map<String, dynamic>> accessCodes = {
+      'FERNANDO2024': {'name': 'Fernando Badilla', 'id': 'fernando'},
+      'JORGE2024': {'name': 'Jorge Castaños', 'id': 'jorge'},
+      'ADMIN2024': {'name': 'Administrador', 'id': 'admin'},
+    };
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[600],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 30),
+
+                // Header con icono
+                Column(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [accentColor, Color(0xFFE6C86A)]),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Icon(Icons.admin_panel_settings, size: 40, color: darkBg),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      'Acceso de Barbero',
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Panel de administración',
+                      style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 40),
+
+                // Campo de código
+                Container(
+                  decoration: BoxDecoration(
+                    color: darkBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: accentColor.withOpacity(0.3)),
+                  ),
+                  child: TextField(
+                    controller: codeController,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2,
+                    ),
+                    textAlign: TextAlign.center,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      labelText: 'Código de Acceso',
+                      labelStyle: TextStyle(color: accentColor),
+                      hintText: 'Ejemplo: FERNANDO',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                        letterSpacing: 1,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(20),
+                    ),
+                    onSubmitted: (_) => _attemptLogin(context, codeController, accessCodes, setState),
+                  ),
+                ),
+
+                SizedBox(height: 30),
+
+                // Botón de login
+                Container(
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [accentColor, Color(0xFFE6C86A)]),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : () => _attemptLogin(context, codeController, accessCodes, setState),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: isLoading
+                        ? CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(darkBg),
+                      strokeWidth: 3,
+                    )
+                        : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.login, color: darkBg),
+                        SizedBox(width: 12),
+                        Text(
+                          'ACCEDER AL PANEL',
+                          style: TextStyle(
+                            color: darkBg,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Función para intentar hacer login
+  void _attemptLogin(BuildContext context, TextEditingController codeController,
+      Map<String, Map<String, dynamic>> accessCodes, StateSetter setState) async {
+    String code = codeController.text.trim().toUpperCase();
+
+    if (code.isEmpty) {
+      _showError(context, 'Por favor ingresa tu código de acceso');
+      return;
+    }
+
+    setState(() => true); // isLoading = true
+
+    await Future.delayed(Duration(milliseconds: 800));
+
+    if (accessCodes.containsKey(code)) {
+      // Navegar al dashboard
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => AdminDashboard(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                )),
+                child: child,
+              ),
+            );
+          },
+        ),
+      );
+    } else {
+      setState(() => false); // isLoading = false
+      _showError(context, 'Código incorrecto. Verifica tu código de acceso.');
+    }
+  }
+
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(fontWeight: FontWeight.w500)),
+        backgroundColor: Colors.red[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(16),
+      ),
+    );
+  }
+
   Future<void> _launchPhone() async {
-    final Uri phoneUrl = Uri.parse('tel:+526642030885');
+    final Uri phoneUrl = Uri.parse('tel:+521234567890');
     try {
       await launchUrl(phoneUrl);
     } catch (e) {
@@ -138,7 +364,7 @@ class _MainScaffoldState extends State<MainScaffold>
   }
 
   Future<void> _launchMaps() async {
-    const String address = 'Chiapas sur 606, Ciudad Obregón';
+    const String address = 'Av. Barbería 123, CDMX';
     final Uri googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}');
 
     try {
@@ -195,21 +421,69 @@ class _MainScaffoldState extends State<MainScaffold>
     return Scaffold(
       backgroundColor: darkBg,
       extendBodyBehindAppBar: true,
-      appBar: _buildAppBar(),
+
       floatingActionButton: _buildFloatingActionButton(),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeroSection(screenHeight),
-            _buildServicesSection(isMobile),
-            _buildStatsSection(),
-            _buildGallerySection(galleryCrossAxisCount),
-            _buildTestimonialsSection(),
-            _buildContactSection(),
-            _buildFooter(),
-          ],
-        ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeroSection(screenHeight),
+                _buildServicesSection(isMobile),
+                _buildStatsSection(),
+                _buildGallerySection(galleryCrossAxisCount),
+                _buildTestimonialsSection(),
+                _buildContactSection(),
+                _buildFooter(),
+              ],
+            ),
+          ),
+          // Botón flotante para acceso de barberos
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            right: 20,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(30),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(30),
+                onTap: () {
+                  _showBarberLogin(context);
+                },
+                child: Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.admin_panel_settings, color: darkBg, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Barbero',
+                        style: TextStyle(
+                          color: darkBg,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -219,7 +493,7 @@ class _MainScaffoldState extends State<MainScaffold>
       backgroundColor: Colors.transparent,
       elevation: 0,
       title: Text(
-        'SHELBY´S BARBERSHOP',
+        'BARBERÍA PREMIUM',
         style: TextStyle(
           color: accentColor,
           fontWeight: FontWeight.bold,
@@ -333,7 +607,7 @@ class _MainScaffoldState extends State<MainScaffold>
                               borderRadius: BorderRadius.circular(50),
                             ),
                             child: Text(
-                              'DESDE 2024',
+                              'DESDE 1995',
                               style: TextStyle(
                                 color: accentColor,
                                 fontSize: 14,
@@ -344,7 +618,7 @@ class _MainScaffoldState extends State<MainScaffold>
                           ),
                           SizedBox(height: 30),
                           Text(
-                            'SHELBY´S',
+                            'BARBERÍA',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 60,
@@ -354,7 +628,7 @@ class _MainScaffoldState extends State<MainScaffold>
                             ),
                           ),
                           Text(
-                            'BARBERSHOP',
+                            'PREMIUM',
                             style: TextStyle(
                               color: accentColor,
                               fontSize: 60,
@@ -779,17 +1053,17 @@ class _MainScaffoldState extends State<MainScaffold>
       padding: EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       child: Column(
         children: [
-          _buildSectionHeader('CONTÁCTANOS', 'Disfruta del mejor servicio'),
+          _buildSectionHeader('CONTÁCTANOS', 'Estamos aquí para ti'),
           SizedBox(height: 60),
           Row(
             children: [
-              Expanded(child: _buildContactCard(Icons.phone, '664 203 0885', 'Llámanos', () => _launchPhone())),
+              Expanded(child: _buildContactCard(Icons.phone, '+52 123 456 7890', 'Llámanos', () => _launchPhone())),
               SizedBox(width: 16),
               Expanded(child: _buildContactCard(Icons.camera_alt, '@shelbysbarbershop_', 'Síguenos', () => _launchInstagram())),
             ],
           ),
           SizedBox(height: 16),
-          _buildContactCard(Icons.location_on, 'C. Chiapas sur 606 Col. Hidalgo, Cd. Obregón', 'Visítanos', () => _launchMaps(), isFullWidth: true),
+          _buildContactCard(Icons.location_on, 'Av. Barbería 123, CDMX', 'Visítanos', () => _launchMaps(), isFullWidth: true),
         ],
       ),
     );
@@ -869,7 +1143,7 @@ class _MainScaffoldState extends State<MainScaffold>
       child: Column(
         children: [
           Text(
-            "SHELBY'S BARBERSHOP",
+            'BARBERÍA PREMIUM',
             style: TextStyle(
               color: accentColor,
               fontSize: 24,
@@ -879,7 +1153,7 @@ class _MainScaffoldState extends State<MainScaffold>
           ),
           SizedBox(height: 16),
           Text(
-            'Tradición y elegancia desde 2024',
+            'Tradición y elegancia desde 1995',
             style: TextStyle(
               color: Colors.white54,
               fontSize: 14,
@@ -889,7 +1163,7 @@ class _MainScaffoldState extends State<MainScaffold>
           Divider(color: Colors.white12),
           SizedBox(height: 16),
           Text(
-            '© 2024 Shelby´s BarberShop. Todos los derechos reservados.',
+            '© 2024 Barbería Premium. Todos los derechos reservados.',
             style: TextStyle(
               color: Colors.white38,
               fontSize: 12,
