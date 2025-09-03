@@ -4,6 +4,11 @@ set -e
 
 echo "📦 Instalando Flutter $FLUTTER_VERSION..."
 
+# Si existe carpeta flutter de builds anteriores, eliminarla
+if [ -d "flutter" ]; then
+  rm -rf flutter
+fi
+
 # Descargar Flutter SDK
 git clone https://github.com/flutter/flutter.git --depth 1 -b stable
 
