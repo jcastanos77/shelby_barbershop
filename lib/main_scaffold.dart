@@ -364,7 +364,7 @@ class _MainScaffoldState extends State<MainScaffold>
   }
 
   Future<void> _launchMaps() async {
-    const String address = 'Av. Barbería 123, CDMX';
+    const String address = 'Chiapas sur 606, Ciudad Obregón';
     final Uri googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}');
 
     try {
@@ -493,7 +493,7 @@ class _MainScaffoldState extends State<MainScaffold>
       backgroundColor: Colors.transparent,
       elevation: 0,
       title: Text(
-        'BARBERÍA PREMIUM',
+        "SHELBY'S BARBERSHOP",
         style: TextStyle(
           color: accentColor,
           fontWeight: FontWeight.bold,
@@ -618,7 +618,7 @@ class _MainScaffoldState extends State<MainScaffold>
                           ),
                           SizedBox(height: 30),
                           Text(
-                            'BARBERÍA',
+                            "SHELBY'S",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 60,
@@ -628,7 +628,7 @@ class _MainScaffoldState extends State<MainScaffold>
                             ),
                           ),
                           Text(
-                            'PREMIUM',
+                            'BARBERSHOP',
                             style: TextStyle(
                               color: accentColor,
                               fontSize: 60,
@@ -1057,13 +1057,13 @@ class _MainScaffoldState extends State<MainScaffold>
           SizedBox(height: 60),
           Row(
             children: [
-              Expanded(child: _buildContactCard(Icons.phone, '+52 123 456 7890', 'Llámanos', () => _launchPhone())),
+              Expanded(child: _buildContactCard(Icons.phone, '+52 644 203 0885', 'Llámanos', () => _launchPhone())),
               SizedBox(width: 16),
               Expanded(child: _buildContactCard(Icons.camera_alt, '@shelbysbarbershop_', 'Síguenos', () => _launchInstagram())),
             ],
           ),
           SizedBox(height: 16),
-          _buildContactCard(Icons.location_on, 'Av. Barbería 123, CDMX', 'Visítanos', () => _launchMaps(), isFullWidth: true),
+          _buildContactCard(Icons.location_on, 'C. Chiapas Sur 606, Col. Hidalgo Cd. Obregón', 'Visítanos', () => _launchMaps(), isFullWidth: true),
         ],
       ),
     );
@@ -1143,7 +1143,7 @@ class _MainScaffoldState extends State<MainScaffold>
       child: Column(
         children: [
           Text(
-            'BARBERÍA PREMIUM',
+            'Shelby´s BarberShop',
             style: TextStyle(
               color: accentColor,
               fontSize: 24,
@@ -1153,7 +1153,7 @@ class _MainScaffoldState extends State<MainScaffold>
           ),
           SizedBox(height: 16),
           Text(
-            'Tradición y elegancia desde 1995',
+            'Tradición y elegancia desde 2024',
             style: TextStyle(
               color: Colors.white54,
               fontSize: 14,
@@ -1163,7 +1163,7 @@ class _MainScaffoldState extends State<MainScaffold>
           Divider(color: Colors.white12),
           SizedBox(height: 16),
           Text(
-            '© 2024 Barbería Premium. Todos los derechos reservados.',
+            '© 2024 Shelby´s BarberShop. Todos los derechos reservados.',
             style: TextStyle(
               color: Colors.white38,
               fontSize: 12,
