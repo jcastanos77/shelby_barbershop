@@ -531,22 +531,6 @@ class _MainScaffoldState extends State<MainScaffold>
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      title: Text(
-        "SHELBY'S BARBER",
-        style: TextStyle(
-          color: accentColor,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2,
-        ),
-      ),
-      centerTitle: true,
-    );
-  }
-
   Widget _buildFloatingActionButton() {
     return Container(
       decoration: BoxDecoration(
@@ -671,7 +655,7 @@ class _MainScaffoldState extends State<MainScaffold>
                             ),
                           ),
                           Text(
-                            'BARBERSHOP',
+                            'BARBER',
                             style: TextStyle(
                               color: accentColor,
                               fontSize: 60,
@@ -747,6 +731,7 @@ class _MainScaffoldState extends State<MainScaffold>
     return Container(
       child: ListView.builder(
         shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
         itemCount: servicesClasics.length,
         itemBuilder: (context, index) {
           final servicio = servicesClasics[index];
@@ -758,56 +743,51 @@ class _MainScaffoldState extends State<MainScaffold>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: ListTile(
-                  contentPadding: EdgeInsets.all(12),
-                  leading: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.content_cut,
-                      color: Colors.white,
-                      size: 28,
-                    ),
+              child: Center(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey,
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  title: Text(
-                    servicio['name'],
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.all(12),
+                    leading: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.content_cut,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    'Servicio profesional de barbería',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  trailing: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      servicio['price'],
+                    title: Text(
+                      servicio['name'],
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
+                      ),
+                    ),
+                    trailing: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        servicio['price'],
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),

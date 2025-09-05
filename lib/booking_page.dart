@@ -14,31 +14,80 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
 
   final List<Map<String, dynamic>> services = [
     {
-      "name": "Corte de cabello",
+      "name": "Corte + Facial",
       "icon": Icons.content_cut,
-      "price": "\$250",
-      "duration": 30,
+      "price": "\$220",
+      "duration": 45,
       "color": 0xFFC9A23F
     },
     {
-      "name": "Arreglo de barba",
-      "icon": Icons.face_retouching_natural,
-      "price": "\$180",
-      "duration": 20,
-      "color": 0xFF8B4513
+      "name": "Corte Vip",
+      "icon": Icons.content_cut,
+      "price": "\$400",
+      "duration": 45,
+      "color": 0xFFC9A23F
     },
     {
       "name": "Corte + Barba",
-      "icon": Icons.face,
-      "price": "\$400",
+      "icon": Icons.face_retouching_natural,
+      "price": "\$250",
+      "duration": 45,
+      "color": 0xFF8B4513
+    },
+    {
+      "name": "Corte de pelo clásico",
+      "icon": Icons.content_cut,
+      "price": "\$150",
       "duration": 45,
       "color": 0xFFD4AF37
     },
     {
-      "name": "Tinte",
+      "name": "Corte de pelo rasurado",
+      "icon": Icons.content_cut,
+      "price": "\$160",
+      "duration": 45,
+      "color": 0xFFB8860B
+    },
+    {
+      "name": "Limpieza de barba",
+      "icon": Icons.face_retouching_natural,
+      "price": "\$100",
+      "duration": 45,
+      "color": 0xFFC9A23F
+    },
+    {
+      "name": "Tinte de cabello",
       "icon": Icons.brush,
-      "price": "\$350",
-      "duration": 60,
+      "price": "\$130",
+      "duration": 45,
+      "color": 0xFFC9A23F
+    },
+    {
+      "name": "Limpieza de ceja",
+      "icon": Icons.face_retouching_natural,
+      "price": "\$30",
+      "duration": 45,
+      "color": 0xFF8B4513
+    },
+    {
+      "name": "Aplicación de Wax",
+      "icon": Icons.brush,
+      "price": "\$50",
+      "duration": 45,
+      "color": 0xFFD4AF37
+    },
+    {
+      "name": "Exfoliación facial",
+      "icon": Icons.face_retouching_natural,
+      "price": "\$100",
+      "duration": 45,
+      "color": 0xFFB8860B
+    },
+    {
+      "name": "Mascarilla negra",
+      "icon": Icons.face_retouching_natural,
+      "price": "\$70",
+      "duration": 45,
       "color": 0xFFB8860B
     }
   ];
@@ -150,7 +199,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
 
       // Generar slots disponibles
       for (int hour in workingHoursForDay) {
-        for (int minute in [0, 15, 30, 45]) {
+        for (int minute in [0, 45]) {
           DateTime slotTime = DateTime(
             selectedDate!.year,
             selectedDate!.month,
