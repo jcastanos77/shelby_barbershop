@@ -24,29 +24,72 @@ class _MainScaffoldState extends State<MainScaffold>
 
   final List<Map<String, dynamic>> services = const [
     {
-      'name': 'Corte Clásico',
-      'price': '\$150',
+      'name': 'Corte + Facial',
+      'price': '\$220',
       'icon': 'cut',
-      'description': 'Corte tradicional con tijera y navaja',
-      'duration': '30 min',
+      'description': 'Corte de cabello mas mascarilla.',
+      'descriptionLarge':'Corte de cabello más... mascarilla de puntos negros, crema exfoliante para remover y limpiar células muertas, mascarilla hidratante de colágeno, todo con vapor para abrir los poros, al final una crema para el cuidado de tu piel, incluyendo masaje',
+      'duration': '45 min',
       'gradient': [0xFF8B4513, 0xFFA0522D]
     },
     {
-      'name': 'Afeitado Premium',
-      'price': '\$120',
+      'name': 'Corte Vip',
+      'price': '\$400',
       'icon': 'face',
-      'description': 'Afeitado clásico con toalla caliente',
-      'duration': '25 min',
-      'gradient': [0xFF2E8B57, 0xFF3CB371]
+      'description': 'Corte, secado y peinado',
+      'descriptionLarge':'Corte de cabello, secado y peinado, arreglo de barba y bigote con vapor mascarilla de puntos negros y exfoliación facial, mascarilla de colágeno para hidratar piel, mascarilla para ojera, arreglo de cejas y aplicación de Wax, incluyendo masaje',
+      'duration': '45 min',
+      'gradient': [0xFF2E8B57, 0xFF3CB371],
     },
     {
       'name': 'Corte + Barba',
       'price': '\$250',
       'icon': 'content_cut',
       'description': 'Servicio completo de lujo',
+      'descriptionLarge':'Corte de cabello, secado y peinado, arreglo de barba y bigote con vapor con aplicación de crema y aceites para el cuidado de tu barba, incluyendo masaje',
       'duration': '45 min',
       'gradient': [0xFF4169E1, 0xFF1E90FF]
     },
+  ];
+
+  final List<Map<String, dynamic>> servicesClasics = const [
+    {
+      'name': 'Corte de pelo clásico',
+      'price': '\$150',
+      'color': 0xFF4169E1
+    },{
+      'name': 'Corte de pelo rasurado',
+      'price': '\$160',
+      'color': 0xFF4169E1
+    },{
+      'name': 'Limpieza de barba',
+      'price': '\$100',
+      'color': 0xFF4169E1
+    },{
+      'name': 'Tinte de barba',
+      'price': '\$80',
+      'color': 0xFF4169E1
+    },{
+      'name': 'Tinte de cabello',
+      'price': '\$130',
+      'color': 0xFF4169E1
+    },{
+      'name': 'Limpieza de ceja',
+      'price': '\$30',
+      'color': 0xFF4169E1
+    },{
+      'name': 'Aplicación de Wax',
+      'price': '\$50',
+      'color': 0xFF4169E1
+    },{
+      'name': 'Exfoliación facial',
+      'price': '\$100',
+      'color': 0xFF4169E1
+    },{
+      'name': 'Mascarilla negra',
+      'price': '\$70',
+      'color': 0xFF4169E1
+    }
   ];
 
   final List<String> galleryImages = const [
@@ -348,7 +391,7 @@ class _MainScaffoldState extends State<MainScaffold>
   }
 
   Future<void> _launchPhone() async {
-    final Uri phoneUrl = Uri.parse('tel:+521234567890');
+    final Uri phoneUrl = Uri.parse('tel:+526442030885');
     try {
       await launchUrl(phoneUrl);
     } catch (e) {
@@ -493,7 +536,7 @@ class _MainScaffoldState extends State<MainScaffold>
       backgroundColor: Colors.transparent,
       elevation: 0,
       title: Text(
-        "SHELBY'S BARBERSHOP",
+        "SHELBY'S BARBER",
         style: TextStyle(
           color: accentColor,
           fontWeight: FontWeight.bold,
@@ -677,7 +720,7 @@ class _MainScaffoldState extends State<MainScaffold>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildSectionHeader('NUESTROS SERVICIOS', 'La experiencia que mereces'),
+          _buildSectionHeader('NUESTROS SERVICIOS ESPECIALES', 'La experiencia que mereces'),
           SizedBox(height: 60),
           AnimatedBuilder(
             animation: _servicesController,
@@ -687,8 +730,284 @@ class _MainScaffoldState extends State<MainScaffold>
                   : _buildDesktopServices();
             },
           ),
+          SizedBox(height: 20),
+         _buildSectionHeader('NUESTROS SERVICIOS CLASICOS', 'Lo mejor de la ciudad'),
+          SizedBox(height: 20),
+        AnimatedBuilder(
+            animation: _servicesController,
+            builder: (context, child) {
+              return _buildClasicServices();
+            }),
         ],
       ),
+    );
+  }
+
+  Widget _buildClasicServices(){
+    return Container(
+      child: ListView.builder(
+        shrinkWrap: true,
+        itemCount: servicesClasics.length,
+        itemBuilder: (context, index) {
+          final servicio = servicesClasics[index];
+          return Container(
+            height: 90,
+            margin: EdgeInsets.only(bottom: 12.0),
+            child: Card(
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: ListTile(
+                  contentPadding: EdgeInsets.all(12),
+                  leading: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.content_cut,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  title: Text(
+                    servicio['name'],
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Servicio profesional de barbería',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                  trailing: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      servicio['price'],
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          },
+      ),
+    );
+  }
+
+  void _mostrarDetalleServicio(BuildContext context, Servicio servicio) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          elevation: 16,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.85,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  servicio.color.withOpacity(0.1),
+                  servicio.color.withOpacity(0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header con gradiente
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFC9A23F),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(25),
+                      topRight: Radius.circular(25),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.content_cut,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        servicio.nombre,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          servicio.precio,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Contenido
+                Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: servicio.color,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Descripción del servicio',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        servicio.descriptionLarge,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.justify,
+                      ),
+                      SizedBox(height: 24),
+
+                      // Información adicional
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: servicio.color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: servicio.color.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              color: servicio.color,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Duración aproximada: 30-45 minutos',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Botones
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Cerrar',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -829,16 +1148,21 @@ class _MainScaffoldState extends State<MainScaffold>
                         ),
                       ],
                     ),
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.arrow_forward,
-                        color: Colors.white,
-                        size: 20,
+                    GestureDetector(
+                      onTap: (){
+                        _mostrarDetalleServicio(context, Servicio(nombre: service['name'], precio: service['price'], descriptionLarge: service['descriptionLarge'], color: Colors.grey));
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ],
@@ -972,22 +1296,7 @@ class _MainScaffoldState extends State<MainScaffold>
                 ),
               ),
             ),
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.zoom_in,
-                  color: darkBg,
-                  size: 20,
-                ),
-              ),
-            ),
+
           ],
         ),
       ),
@@ -1057,7 +1366,7 @@ class _MainScaffoldState extends State<MainScaffold>
           SizedBox(height: 60),
           Row(
             children: [
-              Expanded(child: _buildContactCard(Icons.phone, '+52 644 203 0885', 'Llámanos', () => _launchPhone())),
+              Expanded(child: _buildContactCard(Icons.phone, '644 203 0885', 'Llámanos', () => _launchPhone())),
               SizedBox(width: 16),
               Expanded(child: _buildContactCard(Icons.camera_alt, '@shelbysbarbershop_', 'Síguenos', () => _launchInstagram())),
             ],
@@ -1211,4 +1520,18 @@ class _MainScaffoldState extends State<MainScaffold>
       ],
     );
   }
+}
+
+class Servicio {
+  final String nombre;
+  final String precio;
+  final String descriptionLarge;
+  final Color color;
+
+  Servicio({
+    required this.nombre,
+    required this.precio,
+    required this.descriptionLarge,
+    required this.color,
+  });
 }
