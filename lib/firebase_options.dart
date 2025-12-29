@@ -47,12 +47,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCFe3G9VrWeFIf1kCtmkAyVJec6pZIxO1U',
-    appId: '1:700349548345:web:365b28339f2a6865284ae8',
-    messagingSenderId: '700349548345',
-    projectId: 'barber-shop-be4df',
-    authDomain: 'barber-shop-be4df.firebaseapp.com',
-    storageBucket: 'barber-shop-be4df.firebasestorage.app',
+      apiKey: 'AIzaSyCFe3G9VrWeFIf1kCtmkAyVJec6pZIxO1U',
+      appId: '1:700349548345:web:365b28339f2a6865284ae8',
+      messagingSenderId: '700349548345',
+      projectId: 'barber-shop-be4df',
+      authDomain: 'barber-shop-be4df.firebaseapp.com',
+      storageBucket: 'barber-shop-be4df.firebasestorage.app',
+      databaseURL: 'https://barber-shop-be4df-default-rtdb.firebaseio.com/'
   );
 
   static const FirebaseOptions android = FirebaseOptions(

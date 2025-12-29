@@ -1,7 +1,11 @@
+import 'package:barbershop/services/LandingBarbersService.dart';
+import 'package:barbershop/services/LandingServicesService.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'admin_dashboard.dart';
 import 'booking_page.dart';
+import 'models/BarberModel.dart';
+import 'models/ServiceModel.dart';
 
 class MainScaffold extends StatefulWidget {
   @override
@@ -22,6 +26,26 @@ class _MainScaffoldState extends State<MainScaffold>
   late Animation<double> _servicesStagger;
   late Animation<double> _galleryStagger;
 
+  final _servicesService = LandingServicesService();
+  final _barbersService = LandingBarbersService();
+
+  List<ServiceModel> servicesF = [];
+  List<BarberModel> barbers = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+    _setupAnimations();
+    _startAnimations();
+  }
+
+  Future<void> load() async {
+    servicesF = await _servicesService.getServices();
+    barbers = await _barbersService.getBarbers();
+    setState(() => loading = false);
+  }
   final List<Map<String, dynamic>> services = const [
     {
       'name': 'Corte + Facial',
@@ -51,6 +75,7 @@ class _MainScaffoldState extends State<MainScaffold>
       'gradient': [0xFF4169E1, 0xFF1E90FF]
     },
   ];
+
 
   final List<Map<String, dynamic>> servicesClasics = const [
     {
@@ -100,13 +125,6 @@ class _MainScaffoldState extends State<MainScaffold>
     'assets/images/gallery5.jpg',
     'assets/images/gallery6.jpg',
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _setupAnimations();
-    _startAnimations();
-  }
 
   void _setupAnimations() {
     _heroController = AnimationController(
@@ -461,6 +479,10 @@ class _MainScaffoldState extends State<MainScaffold>
     int galleryCrossAxisCount = screenWidth > 900 ? 3 : screenWidth > 600 ? 2 : 2;
     bool isMobile = screenWidth < 600;
 
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Scaffold(
       backgroundColor: darkBg,
       extendBodyBehindAppBar: true,
@@ -480,50 +502,6 @@ class _MainScaffoldState extends State<MainScaffold>
                 _buildContactSection(),
                 _buildFooter(),
               ],
-            ),
-          ),
-          // Botón flotante para acceso de barberos
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
-            right: 20,
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(30),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(30),
-                onTap: () {
-                  _showBarberLogin(context);
-                },
-                child: Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accentColor.withOpacity(0.3),
-                        blurRadius: 15,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.admin_panel_settings, color: darkBg, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Barbero',
-                        style: TextStyle(
-                          color: darkBg,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ),
           ),
         ],
@@ -634,7 +612,7 @@ class _MainScaffoldState extends State<MainScaffold>
                               borderRadius: BorderRadius.circular(50),
                             ),
                             child: Text(
-                              'DESDE 1995',
+                              'DESDE 2024',
                               style: TextStyle(
                                 color: accentColor,
                                 fontSize: 14,
@@ -709,9 +687,7 @@ class _MainScaffoldState extends State<MainScaffold>
           AnimatedBuilder(
             animation: _servicesController,
             builder: (context, child) {
-              return isMobile
-                  ? _buildMobileServices()
-                  : _buildDesktopServices();
+              return _buildMobileServices();
             },
           ),
           SizedBox(height: 20),
@@ -732,9 +708,9 @@ class _MainScaffoldState extends State<MainScaffold>
       child: ListView.builder(
         shrinkWrap: true,
         physics: NeverScrollableScrollPhysics(),
-        itemCount: servicesClasics.length,
+        itemCount: servicesF.length,
         itemBuilder: (context, index) {
-          final servicio = servicesClasics[index];
+          final servicio = servicesF[index];
           return Container(
             height: 90,
             margin: EdgeInsets.only(bottom: 12.0),
@@ -765,7 +741,7 @@ class _MainScaffoldState extends State<MainScaffold>
                       ),
                     ),
                     title: Text(
-                      servicio['name'],
+                      servicio.name,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -782,7 +758,7 @@ class _MainScaffoldState extends State<MainScaffold>
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        servicio['price'],
+                        '\$${servicio.price}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -992,17 +968,25 @@ class _MainScaffoldState extends State<MainScaffold>
   }
 
   Widget _buildMobileServices() {
+    final filtered = servicesF
+        .where((s) => s.isSpecial == true)
+        .toList();
+
+    if (filtered.isEmpty) {
+      return const SizedBox();
+    }
+
     return SizedBox(
       height: 320,
       child: PageView.builder(
-        itemCount: services.length,
+        itemCount: filtered.length,
         controller: PageController(viewportFraction: 0.85),
         itemBuilder: (context, index) {
           return Transform.scale(
             scale: _servicesStagger.value,
             child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 8),
-              child: _buildServiceCard(services[index], index),
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              child: _buildServiceCard(index, filtered[index]),
             ),
           );
         },
@@ -1010,44 +994,13 @@ class _MainScaffoldState extends State<MainScaffold>
     );
   }
 
-  Widget _buildDesktopServices() {
-    return Row(
-      children: services.asMap().entries.map((entry) {
-        int index = entry.key;
-        Map<String, dynamic> service = entry.value;
-        return Expanded(
-          child: Transform.scale(
-            scale: _servicesStagger.value,
-            child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 12),
-              child: _buildServiceCard(service, index),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
 
-  Widget _buildServiceCard(Map<String, dynamic> service, int index) {
+  Widget _buildServiceCard(int index, ServiceModel serviceData) {
     return Container(
       height: 300,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(service['gradient'][0]),
-            Color(service['gradient'][1]),
-          ],
-        ),
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Color(service['gradient'][0]).withOpacity(0.3),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
+        color: Colors.red,
       ),
       child: Stack(
         children: [
@@ -1081,14 +1034,14 @@ class _MainScaffoldState extends State<MainScaffold>
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Icon(
-                    _iconFromString(service['icon']!),
+                    _iconFromString('cut'),
                     size: 32,
                     color: Colors.white,
                   ),
                 ),
                 SizedBox(height: 20),
                 Text(
-                  service['name']!,
+                  serviceData.name,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -1097,7 +1050,7 @@ class _MainScaffoldState extends State<MainScaffold>
                 ),
                 SizedBox(height: 8),
                 Text(
-                  service['description']!,
+                  serviceData.description,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
@@ -1112,7 +1065,7 @@ class _MainScaffoldState extends State<MainScaffold>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          service['price']!,
+                          '\$${serviceData.price}',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 24,
@@ -1120,7 +1073,7 @@ class _MainScaffoldState extends State<MainScaffold>
                           ),
                         ),
                         Text(
-                          service['duration']!,
+                          '\$${serviceData.duration} min',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.8),
                             fontSize: 12,
@@ -1130,7 +1083,7 @@ class _MainScaffoldState extends State<MainScaffold>
                     ),
                     GestureDetector(
                       onTap: (){
-                        _mostrarDetalleServicio(context, Servicio(nombre: service['name'], precio: service['price'], descriptionLarge: service['descriptionLarge'], color: Colors.grey));
+                        _mostrarDetalleServicio(context, Servicio(nombre: serviceData.name, precio: '\$${serviceData.price}', descriptionLarge: serviceData.description, color: Colors.grey));
                       },
                       child: Container(
                         padding: EdgeInsets.all(8),

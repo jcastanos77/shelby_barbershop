@@ -1,1 +1,38 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"barber-shop-be4df","appId":"1:700349548345:android:4f8b8ac0153d3a26284ae8","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"barber-shop-be4df","appId":"1:700349548345:ios:78f861201ce3cf06284ae8","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"barber-shop-be4df","configurations":{"android":"1:700349548345:android:4f8b8ac0153d3a26284ae8","ios":"1:700349548345:ios:78f861201ce3cf06284ae8","web":"1:700349548345:web:365b28339f2a6865284ae8"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "barber-shop-be4df",
+          "appId": "1:700349548345:android:4f8b8ac0153d3a26284ae8",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "barber-shop-be4df",
+          "appId": "1:700349548345:ios:78f861201ce3cf06284ae8",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "barber-shop-be4df",
+          "configurations": {
+            "android": "1:700349548345:android:4f8b8ac0153d3a26284ae8",
+            "ios": "1:700349548345:ios:78f861201ce3cf06284ae8",
+            "web": "1:700349548345:web:365b28339f2a6865284ae8"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs18"
+    }
+  ]
+}

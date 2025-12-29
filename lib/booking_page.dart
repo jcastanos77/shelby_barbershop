@@ -1,5 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:add_2_calendar/add_2_calendar.dart';
 
 class BookingPage extends StatefulWidget {
   @override
@@ -11,6 +12,12 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
   final Color accentColor = const Color(0xFFC9A23F);
   final Color darkBg = const Color(0xFF0F0F0F);
   final Color cardBg = const Color(0xFF1A1A1A);
+
+  String formatDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  String formatHour(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   final List<Map<String, dynamic>> services = [
     {
@@ -164,100 +171,282 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
 
     setState(() => isLoadingSlots = true);
 
+    final dateKey = formatDate(selectedDate!);
+    final barberId = selectedBarberId!;
+
+    List<int> working = workingHours[selectedDate!.weekday] ?? [];
+    List<TimeOfDay> slots = [];
+
     try {
-      // Obtener citas existentes para el barbero en la fecha seleccionada
-      final startOfDay = Timestamp.fromDate(DateTime(selectedDate!.year, selectedDate!.month, selectedDate!.day));
-      final endOfDay = Timestamp.fromDate(DateTime(selectedDate!.year, selectedDate!.month, selectedDate!.day, 23, 59, 59));
-
-      final existingAppointments = await FirebaseFirestore.instance
-          .collection('appointments')
-          .where('barberId', isEqualTo: selectedBarberId)
-          .where('date', isGreaterThanOrEqualTo: startOfDay)
-          .where('date', isLessThanOrEqualTo: endOfDay)
-          .get();
-
-      // Obtener horarios de trabajo para el día
-      int weekday = selectedDate!.weekday;
-      List<int> workingHoursForDay = workingHours[weekday] ?? [];
-
-      // Duración del servicio seleccionado
-      int serviceDuration = services.firstWhere((s) => s['name'] == selectedService)['duration'];
-
-      List<TimeOfDay> slots = [];
-      Set<DateTime> occupiedTimes = {};
-
-      // Marcar horarios ocupados
-      for (var doc in existingAppointments.docs) {
-        DateTime appointmentTime = (doc['date'] as Timestamp).toDate();
-        int appointmentDuration = doc['serviceDuration'] ?? 30;
-
-        // Marcar todos los slots que ocupa esta cita
-        for (int i = 0; i < appointmentDuration; i += 15) {
-          occupiedTimes.add(appointmentTime.add(Duration(minutes: i)));
-        }
-      }
-
-      // Generar slots disponibles
-      for (int hour in workingHoursForDay) {
+      for (int hour in working) {
         for (int minute in [0, 45]) {
-          DateTime slotTime = DateTime(
-            selectedDate!.year,
-            selectedDate!.month,
-            selectedDate!.day,
-            hour,
-            minute,
-          );
+          final time = TimeOfDay(hour: hour, minute: minute);
+          final hourKey = formatHour(time);
 
-          // Verificar si el slot está libre durante toda la duración del servicio
-          bool isAvailable = true;
-          for (int i = 0; i < serviceDuration; i += 15) {
-            if (occupiedTimes.contains(slotTime.add(Duration(minutes: i)))) {
-              isAvailable = false;
-              break;
+          final ref = FirebaseDatabase.instance
+              .ref('appointments/$barberId/$dateKey/$hourKey');
+
+          final snap = await ref.get();
+
+          if (!snap.exists) {
+            // No permitir pasado
+            final slotTime = DateTime(
+              selectedDate!.year,
+              selectedDate!.month,
+              selectedDate!.day,
+              hour,
+              minute,
+            );
+
+            if (slotTime.isAfter(DateTime.now())) {
+              slots.add(time);
             }
-          }
-
-          // Verificar que no se pase del horario de trabajo
-          DateTime endTime = slotTime.add(Duration(minutes: serviceDuration));
-          int endHour = endTime.hour;
-          if (weekday == 7 && endHour > 17) isAvailable = false; // Domingo hasta 5pm
-          if (weekday != 7 && endHour > 21) isAvailable = false; // Otros días hasta 9pm
-
-          // No permitir citas en el pasado
-          if (slotTime.isBefore(DateTime.now())) isAvailable = false;
-
-          if (isAvailable) {
-            slots.add(TimeOfDay(hour: hour, minute: minute));
           }
         }
       }
 
       setState(() {
         availableSlots = slots;
-        selectedTime = null; // Reset selected time
+        selectedTime = null;
       });
     } catch (e) {
-      _showSnackBar("Error al cargar horarios disponibles", Colors.red);
-      print("Error loading slots: $e"); // Para debug
+      _showSnackBar('Error cargando horarios', Colors.red);
     } finally {
       setState(() => isLoadingSlots = false);
     }
   }
 
+  // Nueva función para agregar al calendario
+  Future<void> _addToCalendar(DateTime appointmentDateTime, int serviceDuration, String barberName) async {
+    try {
+      final service = services.firstWhere((s) => s['name'] == selectedService);
+      final servicePrice = service['price'];
+
+      final Event event = Event(
+        title: '$selectedService - Barbería',
+        description: 'Cita en barbería\n'
+            'Servicio: $selectedService ($servicePrice)\n'
+            'Barbero: $barberName\n'
+            'Cliente: ${nameController.text}\n'
+            'Teléfono: ${phoneController.text}\n'
+            'Duración: $serviceDuration minutos',
+        location: 'Barbería - [Agregar dirección aquí]',
+        startDate: appointmentDateTime,
+        endDate: appointmentDateTime.add(Duration(minutes: serviceDuration)),
+        iosParams: IOSParams(
+          reminder: Duration(minutes: 30), // Recordatorio 30 min antes
+          url: 'https://tu-barberia.com', // URL opcional de tu barbería
+        ),
+        androidParams: AndroidParams(
+          emailInvites: [], // Lista vacía por defecto
+        ),
+      );
+
+      final bool? result = await Add2Calendar.addEvent2Cal(event);
+
+      if (result == true) {
+        _showSnackBar("✅ Evento agregado al calendario", Colors.green);
+      } else {
+        _showSnackBar("❌ No se pudo agregar al calendario", Colors.orange);
+      }
+    } catch (e) {
+      print("Error adding to calendar: $e");
+      _showSnackBar("Error al agregar al calendario", Colors.red);
+    }
+  }
+
+  // Función para mostrar diálogo de confirmación de calendario
+  Future<void> _showCalendarDialog(DateTime appointmentDateTime, int serviceDuration, String barberName) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [accentColor.withOpacity(0.1), accentColor.withOpacity(0.05)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [accentColor, accentColor.withOpacity(0.8)],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.calendar_month,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  '¡Cita Confirmada!',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: darkBg,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '¿Deseas agregar esta cita a tu calendario?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 8),
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: accentColor.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '📅 ${appointmentDateTime.day}/${appointmentDateTime.month}/${appointmentDateTime.year}',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        '⏰ ${TimeOfDay.fromDateTime(appointmentDateTime).format(context)}',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        '✂️ $selectedService',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        '👨‍🦲 $barberName',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey[400]!),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          'Ahora no',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          await _addToCalendar(appointmentDateTime, serviceDuration, barberName);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          elevation: 3,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_to_photos, color: Colors.white, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Agregar al Calendario',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _saveAppointment() async {
-    if (nameController.text.isEmpty ||
-        phoneController.text.isEmpty ||
-        selectedDate == null ||
+    if (selectedDate == null ||
         selectedTime == null ||
-        selectedBarberId == null) {
-      _showSnackBar("Por favor, completa todos los campos", Colors.orange);
+        selectedBarberId == null ||
+        nameController.text.isEmpty ||
+        phoneController.text.isEmpty) {
+      _showSnackBar('Completa todos los campos', Colors.orange);
       return;
     }
 
     setState(() => isLoading = true);
 
+    final dateKey = formatDate(selectedDate!);
+    final hourKey = formatHour(selectedTime!);
+    final barberId = selectedBarberId!;
+
+    final service = services.firstWhere((s) => s['name'] == selectedService);
+
+    final ref = FirebaseDatabase.instance
+        .ref('appointments/$barberId/$dateKey/$hourKey');
+
     try {
-      final DateTime appointmentDateTime = DateTime(
+      final result = await ref.runTransaction((current) {
+        if (current != null) {
+          return Transaction.abort();
+        }
+
+        return Transaction.success({
+          'clientName': nameController.text,
+          'phone': phoneController.text,
+          'service': selectedService,
+          'price': service['price'],
+          'duration': service['duration'],
+          'status': 'confirmed',
+          'createdAt': ServerValue.timestamp,
+        });
+      });
+
+      if (!result.committed) {
+        _showSnackBar('Ese horario ya fue reservado', Colors.red);
+        return;
+      }
+
+      final appointmentDateTime = DateTime(
         selectedDate!.year,
         selectedDate!.month,
         selectedDate!.day,
@@ -265,30 +454,21 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         selectedTime!.minute,
       );
 
-      int serviceDuration = services.firstWhere((s) => s['name'] == selectedService)['duration'];
-      String barberName = barbers.firstWhere((b) => b['id'] == selectedBarberId)['name'];
+      final barberName =
+      barbers.firstWhere((b) => b['id'] == barberId)['name'];
 
-      await FirebaseFirestore.instance.collection('appointments').add({
-        'name': nameController.text,
-        'phone': phoneController.text,
-        'service': selectedService,
-        'serviceDuration': serviceDuration,
-        'barberId': selectedBarberId,
-        'barberName': barberName,
-        'date': Timestamp.fromDate(appointmentDateTime), // Convertir a Timestamp
-        'status': 'confirmed',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      _showSnackBar('Cita confirmada con $barberName', Colors.green);
+      await _showCalendarDialog(
+          appointmentDateTime, service['duration'], barberName);
 
-      _showSnackBar("¡Cita agendada exitosamente con $barberName!", Colors.green);
       _resetForm();
     } catch (e) {
-      _showSnackBar("Error al agendar la cita", Colors.red);
-      print("Error saving appointment: $e"); // Para debug
+      _showSnackBar('Error al guardar la cita', Colors.red);
     } finally {
       setState(() => isLoading = false);
     }
   }
+
 
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
