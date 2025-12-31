@@ -2,7 +2,20 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:add_2_calendar/add_2_calendar.dart';
 
+import 'models/BarberModel.dart';
+import 'models/ServiceModel.dart';
+
 class BookingPage extends StatefulWidget {
+
+  final List<ServiceModel> services;
+  final List<BarberModel> barbers;
+
+  const BookingPage({
+    super.key,
+    required this.services,
+    required this.barbers,
+  });
+
   @override
   _BookingPageState createState() => _BookingPageState();
 }
@@ -19,106 +32,6 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
   String formatHour(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-  final List<Map<String, dynamic>> services = [
-    {
-      "name": "Corte + Facial",
-      "icon": Icons.content_cut,
-      "price": "\$220",
-      "duration": 45,
-      "color": 0xFFC9A23F
-    },
-    {
-      "name": "Corte Vip",
-      "icon": Icons.content_cut,
-      "price": "\$400",
-      "duration": 45,
-      "color": 0xFFC9A23F
-    },
-    {
-      "name": "Corte + Barba",
-      "icon": Icons.face_retouching_natural,
-      "price": "\$250",
-      "duration": 45,
-      "color": 0xFF8B4513
-    },
-    {
-      "name": "Corte de pelo clásico",
-      "icon": Icons.content_cut,
-      "price": "\$150",
-      "duration": 45,
-      "color": 0xFFD4AF37
-    },
-    {
-      "name": "Corte de pelo rasurado",
-      "icon": Icons.content_cut,
-      "price": "\$160",
-      "duration": 45,
-      "color": 0xFFB8860B
-    },
-    {
-      "name": "Limpieza de barba",
-      "icon": Icons.face_retouching_natural,
-      "price": "\$100",
-      "duration": 45,
-      "color": 0xFFC9A23F
-    },
-    {
-      "name": "Tinte de cabello",
-      "icon": Icons.brush,
-      "price": "\$130",
-      "duration": 45,
-      "color": 0xFFC9A23F
-    },
-    {
-      "name": "Limpieza de ceja",
-      "icon": Icons.face_retouching_natural,
-      "price": "\$30",
-      "duration": 45,
-      "color": 0xFF8B4513
-    },
-    {
-      "name": "Aplicación de Wax",
-      "icon": Icons.brush,
-      "price": "\$50",
-      "duration": 45,
-      "color": 0xFFD4AF37
-    },
-    {
-      "name": "Exfoliación facial",
-      "icon": Icons.face_retouching_natural,
-      "price": "\$100",
-      "duration": 45,
-      "color": 0xFFB8860B
-    },
-    {
-      "name": "Mascarilla negra",
-      "icon": Icons.face_retouching_natural,
-      "price": "\$70",
-      "duration": 45,
-      "color": 0xFFB8860B
-    }
-  ];
-
-  final List<Map<String, dynamic>> barbers = [
-    {
-      "id": "fernando",
-      "name": "Fernando Badilla",
-      "experience": "8 años",
-      "specialties": ["Cortes clásicos", "Fades modernos"],
-      "avatar": "👨‍🦲",
-      "rating": 4.9,
-      "color": 0xFFC9A23F
-    },
-    {
-      "id": "jorge",
-      "name": "Jorge Castaños",
-      "experience": "6 años",
-      "specialties": ["Barbas premium", "Estilos vintage"],
-      "avatar": "👨‍🦱",
-      "rating": 4.8,
-      "color": 0xFFD4AF37
-    }
-  ];
 
   // Horarios de trabajo
   final Map<int, List<int>> workingHours = {
@@ -219,8 +132,8 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
   // Nueva función para agregar al calendario
   Future<void> _addToCalendar(DateTime appointmentDateTime, int serviceDuration, String barberName) async {
     try {
-      final service = services.firstWhere((s) => s['name'] == selectedService);
-      final servicePrice = service['price'];
+      final service = widget.services.firstWhere((s) => s.name == selectedService);
+      final servicePrice = service.price;
 
       final Event event = Event(
         title: '$selectedService - Barbería',
@@ -300,15 +213,6 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
                     color: darkBg,
                   ),
                 ),
-                SizedBox(height: 12),
-                Text(
-                  '¿Deseas agregar esta cita a tu calendario?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
                 SizedBox(height: 8),
                 Container(
                   padding: EdgeInsets.all(16),
@@ -340,60 +244,22 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
                   ),
                 ),
                 SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey[400]!),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: Text(
-                          'Ahora no',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey[400]!),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          await _addToCalendar(appointmentDateTime, serviceDuration, barberName);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accentColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          elevation: 3,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_to_photos, color: Colors.white, size: 18),
-                            SizedBox(width: 8),
-                            Text(
-                              'Agregar al Calendario',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(
+                    'Cerrar',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -419,7 +285,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     final hourKey = formatHour(selectedTime!);
     final barberId = selectedBarberId!;
 
-    final service = services.firstWhere((s) => s['name'] == selectedService);
+    final service = widget.services.firstWhere((s) => s.name == selectedService);
 
     final ref = FirebaseDatabase.instance
         .ref('appointments/$barberId/$dateKey/$hourKey');
@@ -434,8 +300,8 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           'clientName': nameController.text,
           'phone': phoneController.text,
           'service': selectedService,
-          'price': service['price'],
-          'duration': service['duration'],
+          'price': service.price,
+          'duration': service.duration,
           'status': 'confirmed',
           'createdAt': ServerValue.timestamp,
         });
@@ -455,11 +321,11 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
       );
 
       final barberName =
-      barbers.firstWhere((b) => b['id'] == barberId)['name'];
+      widget.barbers.firstWhere((b) => b.id == barberId).name;
 
       _showSnackBar('Cita confirmada con $barberName', Colors.green);
       await _showCalendarDialog(
-          appointmentDateTime, service['duration'], barberName);
+          appointmentDateTime, service.duration, barberName);
 
       _resetForm();
     } catch (e) {
@@ -485,7 +351,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     nameController.clear();
     phoneController.clear();
     setState(() {
-      selectedService = services.first['name'];
+      selectedService = widget.services.first.name;
       selectedBarberId = null;
       selectedDate = null;
       selectedTime = null;
@@ -627,13 +493,13 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
       children: [
         _buildSectionTitle("Selecciona tu Servicio"),
         SizedBox(height: 20),
-        ...services.map((service) => _buildServiceCard(service)).toList(),
+        ...widget.services.map((service) => _buildServiceCard(service)).toList(),
       ],
     );
   }
 
-  Widget _buildServiceCard(Map<String, dynamic> service) {
-    bool isSelected = selectedService == service['name'];
+  Widget _buildServiceCard(ServiceModel service) {
+    bool isSelected = selectedService == service.name;
 
     return AnimatedContainer(
       duration: Duration(milliseconds: 200),
@@ -642,7 +508,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected ? Color(service['color']) : Colors.grey[600]!,
+          color: isSelected ? Colors.grey : Colors.grey[600]!,
           width: isSelected ? 3 : 1,
         ),
         boxShadow: [
@@ -658,17 +524,17 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         leading: Container(
           padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Color(service['color']).withOpacity(0.1),
+            color: Colors.grey.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
-            service['icon'],
-            color: Color(service['color']),
+            Icons.cut,
+            color: Colors.grey,
             size: 32,
           ),
         ),
         title: Text(
-          service['name'],
+          service.name,
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -676,23 +542,23 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           ),
         ),
         subtitle: Text(
-          "${service['duration']} min",
+          "${service.duration} min",
           style: TextStyle(
             color: Colors.grey[400],
             fontSize: 14,
           ),
         ),
         trailing: Text(
-          service['price'],
+          '\$${service.price}',
           style: TextStyle(
-            color: Color(service['color']),
+            color: Colors.grey,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         onTap: () {
           setState(() {
-            selectedService = service['name'];
+            selectedService = service.name;
             // Reset selections that depend on service
             selectedTime = null;
             availableSlots = [];
@@ -708,13 +574,13 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
       children: [
         _buildSectionTitle("Selecciona tu Barbero"),
         SizedBox(height: 20),
-        ...barbers.map((barber) => _buildBarberCard(barber)).toList(),
+        ...widget.barbers.map((barber) => _buildBarberCard(barber)).toList(),
       ],
     );
   }
 
-  Widget _buildBarberCard(Map<String, dynamic> barber) {
-    bool isSelected = selectedBarberId == barber['id'];
+  Widget _buildBarberCard(BarberModel barber) {
+    bool isSelected = selectedBarberId == barber.id;
 
     return AnimatedContainer(
       duration: Duration(milliseconds: 200),
@@ -723,7 +589,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected ? Color(barber['color']) : Colors.grey[200]!,
+          color: isSelected ? Colors.red : Colors.grey[200]!,
           width: isSelected ? 3 : 1,
         ),
         boxShadow: [
@@ -740,18 +606,18 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: Color(barber['color']).withOpacity(0.1),
+            color: Colors.grey.withOpacity(0.1),
             borderRadius: BorderRadius.circular(30),
           ),
           child: Center(
             child: Text(
-              barber['avatar'],
+              'barber',
               style: TextStyle(fontSize: 32),
             ),
           ),
         ),
         title: Text(
-          barber['name'],
+          barber.name,
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -763,7 +629,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           children: [
             SizedBox(height: 5),
             Text(
-              "Experiencia: ${barber['experience']}",
+              "Experiencia: ${6 }años",
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 14,
@@ -775,7 +641,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
                 Icon(Icons.star, color: Colors.amber, size: 16),
                 SizedBox(width: 4),
                 Text(
-                  "${barber['rating']}",
+                  "${5}",
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
@@ -788,7 +654,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         ),
         onTap: () {
           setState(() {
-            selectedBarberId = barber['id'];
+            selectedBarberId = barber.id;
             // Reset time selection when barber changes
             selectedTime = null;
             availableSlots = [];
@@ -1028,8 +894,8 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
       return Container();
     }
 
-    final service = services.firstWhere((s) => s['name'] == selectedService);
-    final barber = barbers.firstWhere((b) => b['id'] == selectedBarberId);
+    final service = widget.services.firstWhere((s) => s.name == selectedService);
+    final barber = widget.barbers.firstWhere((b) => b.id == selectedBarberId);
 
     return Container(
       padding: EdgeInsets.all(20),
@@ -1060,11 +926,11 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
             ),
           ),
           SizedBox(height: 16),
-          _buildSummaryRow("Servicio", selectedService, service['price']),
-          _buildSummaryRow("Barbero", barber['name'], ""),
+          _buildSummaryRow("Servicio", selectedService, '${service.price}'),
+          _buildSummaryRow("Barbero", barber.name, ""),
           _buildSummaryRow("Fecha", "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}", ""),
           _buildSummaryRow("Hora", selectedTime!.format(context), ""),
-          _buildSummaryRow("Duración", "${service['duration']} min", ""),
+          _buildSummaryRow("Duración", "${service.duration} min", ""),
         ],
       ),
     );

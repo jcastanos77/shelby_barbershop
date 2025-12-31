@@ -542,7 +542,7 @@ class _MainScaffoldState extends State<MainScaffold>
           Navigator.push(
             context,
             PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => BookingPage(),
+              pageBuilder: (context, animation, secondaryAnimation) => BookingPage(barbers: barbers, services: servicesF,),
               transitionsBuilder: (context, animation, secondaryAnimation, child) {
                 return SlideTransition(
                   position: Tween<Offset>(
@@ -977,7 +977,7 @@ class _MainScaffoldState extends State<MainScaffold>
     }
 
     return SizedBox(
-      height: 320,
+      height: 350,
       child: PageView.builder(
         itemCount: filtered.length,
         controller: PageController(viewportFraction: 0.85),
