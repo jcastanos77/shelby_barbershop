@@ -877,6 +877,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         ),
         SizedBox(height: 20),
         _buildTextField(
+          maxLength: 10,
           controller: phoneController,
           label: "Teléfono",
           icon: Icons.phone,
@@ -971,6 +972,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     required IconData icon,
     String? hint,
     TextInputType? keyboardType,
+    int maxLength = 100
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -985,9 +987,19 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         ],
       ),
       child: TextField(
+
+        style: const TextStyle(
+        color: Colors.black,
+        ),
+        maxLength: maxLength,
         controller: controller,
         keyboardType: keyboardType,
         decoration: InputDecoration(
+          floatingLabelStyle: TextStyle(
+            color: accentColor, // 👈 el que tú quieras
+          ),
+          counterText: '',
+          hintStyle: TextStyle(color: Colors.black),
           labelText: label,
           hintText: hint,
           prefixIcon: Icon(icon, color: Color(0xFF34495E)),
