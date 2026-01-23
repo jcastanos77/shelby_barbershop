@@ -2,6 +2,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:add_2_calendar/add_2_calendar.dart';
 
+import 'PaymentPage.dart';
 import 'models/BarberModel.dart';
 import 'models/ServiceModel.dart';
 
@@ -87,39 +88,85 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     final dateKey = formatDate(selectedDate!);
     final barberId = selectedBarberId!;
 
-    List<int> working = workingHours[selectedDate!.weekday] ?? [];
-    List<TimeOfDay> slots = [];
+    final working = workingHours[selectedDate!.weekday] ?? [];
+    final allSlots = <TimeOfDay>[];
 
-    try {
-      for (int hour in working) {
-        for (int minute in [0, 45]) {
-          final time = TimeOfDay(hour: hour, minute: minute);
-          final hourKey = formatHour(time);
+    // 1️⃣ Generar TODOS los slots posibles
+    for (final hour in working) {
+      for (final minute in [0, 45]) {
+        final slotDateTime = DateTime(
+          selectedDate!.year,
+          selectedDate!.month,
+          selectedDate!.day,
+          hour,
+          minute,
+        );
 
-          final ref = FirebaseDatabase.instance
-              .ref('appointments/$barberId/$dateKey/$hourKey');
-
-          final snap = await ref.get();
-
-          if (!snap.exists) {
-            // No permitir pasado
-            final slotTime = DateTime(
-              selectedDate!.year,
-              selectedDate!.month,
-              selectedDate!.day,
-              hour,
-              minute,
-            );
-
-            if (slotTime.isAfter(DateTime.now())) {
-              slots.add(time);
-            }
-          }
+        if (slotDateTime.isAfter(DateTime.now())) {
+          allSlots.add(TimeOfDay(hour: hour, minute: minute));
         }
       }
+    }
+
+    try {
+      // 2️⃣ Leer TODO el día de una sola vez
+      final snap = await FirebaseDatabase.instance
+          .ref('appointments/$barberId/$dateKey')
+          .get();
+
+      if (!snap.exists) {
+        setState(() {
+          availableSlots = allSlots;
+          selectedTime = null;
+        });
+        return;
+      }
+
+      final Map<String, dynamic> data =
+      Map<String, dynamic>.from(snap.value as Map);
+
+      // 3️⃣ Slots ocupados
+      final takenSlots = <String>{};
+
+      // 4️⃣ Bloques
+      final blocks = <Map<String, String>>[];
+
+      data.forEach((time, value) {
+        final v = Map<String, dynamic>.from(value);
+
+        if (v['type'] == 'block') {
+          blocks.add({
+            'from': v['from'],
+            'to': v['to'],
+          });
+        } else {
+          takenSlots.add(time); // ej. "10:00"
+        }
+      });
+
+      // 5️⃣ Filtrar
+      final filtered = allSlots.where((slot) {
+        final slotStr = formatHour(slot);
+        final slotMin = slot.hour * 60 + slot.minute;
+
+        // ❌ cita existente
+        if (takenSlots.contains(slotStr)) return false;
+
+        // ❌ dentro de bloque
+        for (final b in blocks) {
+          final from = _toMinutes(b['from']!);
+          final to = _toMinutes(b['to']!);
+
+          if (slotMin >= from && slotMin < to) {
+            return false;
+          }
+        }
+
+        return true;
+      }).toList();
 
       setState(() {
-        availableSlots = slots;
+        availableSlots = filtered;
         selectedTime = null;
       });
     } catch (e) {
@@ -127,6 +174,11 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     } finally {
       setState(() => isLoadingSlots = false);
     }
+  }
+
+  int _toMinutes(String time) {
+    final p = time.split(':');
+    return int.parse(p[0]) * 60 + int.parse(p[1]);
   }
 
   // Nueva función para agregar al calendario
@@ -269,7 +321,106 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     );
   }
 
+  Future<void> _goToPayment() async {
+    if (!_canProceedToNext()) {
+      _showSnackBar('Completa todos los campos', Colors.orange);
+      return;
+    }
+
+    final service = widget.services.firstWhere((s) => s.name == selectedService);
+    final int depositAmount = (service.price * 0.3).round();
+
+    final barberId = selectedBarberId!;
+    final dateKey = formatDate(selectedDate!);
+    final hourKey = formatHour(selectedTime!);
+
+    final bool? paymentSuccess = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentPage(
+          barberId: barberId,
+          dateKey: dateKey,
+          hourKey: hourKey,
+          depositAmount: depositAmount,
+          clientName: nameController.text,
+          service: selectedService,
+        ),
+      ),
+    );
+
+    // 👇 SOLO si el pago fue exitoso
+    if (paymentSuccess == true) {
+      await _saveAppointmentAfterPayment(depositAmount);
+    }
+  }
+
+  Future<void> _saveAppointmentAfterPayment(int depositAmount) async {
+    setState(() => isLoading = true);
+
+    final dateKey = formatDate(selectedDate!);
+    final hourKey = formatHour(selectedTime!);
+    final barberId = selectedBarberId!;
+
+    final service = widget.services.firstWhere((s) => s.name == selectedService);
+
+    final ref = FirebaseDatabase.instance
+        .ref('appointments/$barberId/$dateKey/$hourKey');
+
+    try {
+      final result = await ref.runTransaction((current) {
+        if (current != null) return Transaction.abort();
+
+        return Transaction.success({
+          'clientName': nameController.text,
+          'phone': phoneController.text,
+          'service': selectedService,
+          'price': service.price,
+          'duration': service.duration,
+
+          'status': 'confirmed',
+          'depositRequired': depositAmount,
+          'depositPaid': depositAmount,
+          'paymentStatus': 'paid',
+          'paymentMethod': 'online',
+
+          'createdAt': ServerValue.timestamp,
+        });
+      });
+
+      if (!result.committed) {
+        _showSnackBar('Ese horario ya fue reservado', Colors.red);
+        return;
+      }
+
+      final appointmentDateTime = DateTime(
+        selectedDate!.year,
+        selectedDate!.month,
+        selectedDate!.day,
+        selectedTime!.hour,
+        selectedTime!.minute,
+      );
+
+      final barberName =
+          widget.barbers.firstWhere((b) => b.id == barberId).name;
+
+      _showSnackBar('Cita confirmada con $barberName', Colors.green);
+
+      await _showCalendarDialog(
+        appointmentDateTime,
+        service.duration,
+        barberName,
+      );
+
+      _resetForm();
+    } catch (e) {
+      _showSnackBar('Error al guardar la cita', Colors.red);
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
   Future<void> _saveAppointment() async {
+
     if (selectedDate == null ||
         selectedTime == null ||
         selectedBarberId == null ||
@@ -296,13 +447,20 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           return Transaction.abort();
         }
 
+        final int depositAmount = (service.price * 0.3).round();
+
         return Transaction.success({
           'clientName': nameController.text,
           'phone': phoneController.text,
           'service': selectedService,
           'price': service.price,
           'duration': service.duration,
-          'status': 'confirmed',
+          'status': 'pending_payment',
+          'depositRequired': depositAmount,
+          'depositPaid': 0,
+          'paymentMethod': '',
+          'paymentStatus': 'pending',
+
           'createdAt': ServerValue.timestamp,
         });
       });
@@ -891,12 +1049,15 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
   }
 
   Widget _buildSummaryCard() {
+
     if (selectedService.isEmpty || selectedBarberId == null || selectedDate == null || selectedTime == null) {
       return Container();
     }
 
     final service = widget.services.firstWhere((s) => s.name == selectedService);
     final barber = widget.barbers.firstWhere((b) => b.id == selectedBarberId);
+
+    final int depositAmount = (service.price * 0.3).round();
 
     return Container(
       padding: EdgeInsets.all(20),
@@ -927,11 +1088,21 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
             ),
           ),
           SizedBox(height: 16),
-          _buildSummaryRow("Servicio", selectedService, '${service.price}'),
+          _buildSummaryRow("Servicio", selectedService, ""),
+          _buildSummaryRow("Precio total", "\$${service.price}", ""),
+          _buildSummaryRow("Anticipo (30%)", "\$${depositAmount}", ""),
+          _buildSummaryRow(
+            "Restante",
+            "\$${service.price - depositAmount}",
+            "a pagar en barbería",
+          ),
           _buildSummaryRow("Barbero", barber.name, ""),
-          _buildSummaryRow("Fecha", "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}", ""),
+          _buildSummaryRow(
+            "Fecha",
+            "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
+            "",
+          ),
           _buildSummaryRow("Hora", selectedTime!.format(context), ""),
-          _buildSummaryRow("Duración", "${service.duration} min", ""),
         ],
       ),
     );
@@ -972,44 +1143,43 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     required IconData icon,
     String? hint,
     TextInputType? keyboardType,
-    int maxLength = 100
+    int maxLength = 100,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLength: maxLength,
+      style: const TextStyle(color: Colors.black),
+      decoration: InputDecoration(
+        counterText: '',
+        labelText: label,
+        hintText: hint,
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
 
-        style: const TextStyle(
-        color: Colors.black,
+        labelStyle: TextStyle(
+          color: Colors.grey[700],
+          backgroundColor: Colors.white, // 🔥 evita el “color feo”
         ),
-        maxLength: maxLength,
-        controller: controller,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          floatingLabelStyle: TextStyle(
-            color: accentColor, // 👈 el que tú quieras
-          ),
-          counterText: '',
-          hintStyle: TextStyle(color: Colors.black),
-          labelText: label,
-          hintText: hint,
-          prefixIcon: Icon(icon, color: Color(0xFF34495E)),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        floatingLabelStyle: TextStyle(
+          color: accentColor,
+          backgroundColor: Colors.white, // 🔥 CLAVE
+        ),
+
+        hintStyle: TextStyle(color: Colors.grey[500]),
+        prefixIcon: Icon(icon, color: Colors.grey[700]),
+
+        filled: true,
+        fillColor: Colors.white,
+
+        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: accentColor, width: 2),
         ),
       ),
     );
@@ -1065,7 +1235,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
               ],
             ),
             child: ElevatedButton(
-              onPressed: isLoading ? null : _saveAppointment,
+              onPressed: isLoading ? null : _goToPayment,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -1084,7 +1254,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
                   Icon(Icons.event_available, color: Colors.white),
                   SizedBox(width: 10),
                   Text(
-                    "Confirmar Cita",
+                    "Pagar anticipo y reservar",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

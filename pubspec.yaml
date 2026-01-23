@@ -44,6 +44,8 @@ dependencies:
   url_launcher: ^6.1.7
   add_2_calendar: ^3.0.1
   firebase_database: ^11.0.0
+  mercado_pago_mobile_checkout: ^0.1.1
+  cloud_functions: ^5.6.2
 
 dev_dependencies:
   flutter_test:
