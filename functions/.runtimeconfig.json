@@ -9,11 +9,5 @@
   },
   "mp": {
     "token": "APP_USR-7817840466115371-012113-a2694cb90cddf2b73a8cbcf323568a68-3149661773"
-  },
-  "google": {
-    "refresh_token": "https://oauth2.googleapis.com/token",
-    "redirect_uri": "https://accounts.google.com/o/oauth2/auth",
-    "client_secret": "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",
-    "client_id": "412125793094-35fhhp1d49qa7uvq6hiagakg1ut1ra8p.apps.googleusercontent.com"
   }
 }
