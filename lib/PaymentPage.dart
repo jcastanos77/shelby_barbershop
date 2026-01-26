@@ -1,8 +1,8 @@
 import 'dart:html' as html;
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:mercado_pago_mobile_checkout/mercado_pago_mobile_checkout.dart';
-
 import 'PaymentSuccessScreen.dart';
 import 'models/PaymentErrorScreen.dart';
 
@@ -25,9 +25,32 @@ class PaymentPage extends StatelessWidget {
   });
 
   Future<void> _pay(BuildContext context) async {
+    late String checkoutUrl;
+    final db = FirebaseDatabase.instance.ref();
+    final appointmentId = db.child('appointments').push().key;
+
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('createMpPreference');
-      print(callable.toString());
+
+      if (appointmentId == null) {
+        throw Exception('No se pudo generar appointmentId');
+      }
+
+      await db.child('appointments/$appointmentId').set({
+        'barberId': barberId,
+        'clientName': clientName,
+        'service': service,
+        'dateKey': dateKey,
+        'hourKey': hourKey,
+        'amount': depositAmount,
+        'paid': false,
+        'paymentStatus': 'pending_payment',
+        'createdAt': ServerValue.timestamp,
+      });
+
+      final callable = FirebaseFunctions.instanceFor(
+        region: 'us-central1',
+      ).httpsCallable('createMpPreference');
+
       final result = await callable.call({
         'amount': depositAmount,
         'barberId': barberId,
@@ -37,19 +60,28 @@ class PaymentPage extends StatelessWidget {
         'service': service,
       });
 
-      final checkoutUrl = result.data['init_point'];
-      if (checkoutUrl == null || checkoutUrl.isEmpty) {
-        throw Exception("No se recibió la URL de pago");
-      }
-      html.window.open(checkoutUrl, "_blank");
-    }  on FirebaseFunctionsException catch (e) {
-      // Captura errores específicos de Firebase
-      html.window.alert("Error de función: ${e.message}");
+      checkoutUrl = result.data['init_point'];
+      debugPrint("✅ CHECKOUT URL: $checkoutUrl");
+
     } catch (e) {
-      // Cualquier otro error
-      html.window.alert("Ocurrió un error al iniciar el pago: $e");
+
+      await db.child('appointments/$appointmentId').remove();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const PaymentErrorScreen(
+            message: 'No se pudo iniciar el pago.',
+          ),
+        ),
+      );
+      return;
     }
+
+    // 🚀 REDIRECCIÓN FUERA DEL TRY
+    html.window.location.href = checkoutUrl;
   }
+
 
   @override
   Widget build(BuildContext context) {

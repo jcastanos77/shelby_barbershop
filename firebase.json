@@ -30,6 +30,7 @@
   },
   "functions": [
     {
+      "port": 5002,
       "source": "functions",
       "codebase": "default",
       "runtime": "nodejs18"
