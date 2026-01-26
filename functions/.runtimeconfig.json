@@ -1,12 +1,4 @@
 {
-  "barber": {
-    "jorge": {
-      "calendar_id": "calendario-jorge-id@group.calendar.google.com"
-    },
-    "fernando": {
-      "calendar_id": "calendario-fernando-id@group.calendar.google.com"
-    }
-  },
   "mp": {
     "token": "APP_USR-7817840466115371-012113-a2694cb90cddf2b73a8cbcf323568a68-3149661773"
   }
