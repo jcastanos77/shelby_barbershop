@@ -4,9 +4,8 @@ const axios = require("axios");
 
 admin.initializeApp();
 
-exports.createMpPreference = functions.https.onCall(async (data, context) => {
+exports.createMpPreference = functions.https.onCall(async (data) => {
   try {
-
     const {
       amount,
       barberId,
@@ -14,32 +13,15 @@ exports.createMpPreference = functions.https.onCall(async (data, context) => {
       hourKey,
       clientName,
       service,
-    } = data.data;
+      appointmentId,
+    } = data;
 
     const parsedAmount = Number(amount);
-
-
-    if (Number.isNaN(parsedAmount)) {
-      throw new functions.https.HttpsError(
-        "invalid-argument",
-        "El monto no es un número"
-      );
-    }
-
-    if (parsedAmount <= 0) {
-      throw new functions.https.HttpsError(
-        "invalid-argument",
-        "El monto debe ser mayor a 0"
-      );
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+      throw new functions.https.HttpsError("invalid-argument", "Monto inválido");
     }
 
     const mpToken = functions.config().mp.token;
-    if (!mpToken) {
-      throw new functions.https.HttpsError(
-        "failed-precondition",
-        "Token MP no configurado"
-      );
-    }
 
     const response = await axios.post(
       "https://api.mercadopago.com/checkout/preferences",
@@ -52,18 +34,20 @@ exports.createMpPreference = functions.https.onCall(async (data, context) => {
             unit_price: parsedAmount,
           },
         ],
+        external_reference: appointmentId, // ⭐ CLAVE
         metadata: {
           barberId,
           dateKey,
           hourKey,
           clientName,
+          service,
         },
         back_urls: {
           success: "https://neon-seahorse-b85142.netlify.app/#/payment-result?status=approved",
           failure: "https://neon-seahorse-b85142.netlify.app/#/payment-result?status=rejected",
           pending: "https://neon-seahorse-b85142.netlify.app/#/payment-result?status=pending",
         },
-       auto_return: "approved",
+        auto_return: "approved",
       },
       {
         headers: {
@@ -73,21 +57,11 @@ exports.createMpPreference = functions.https.onCall(async (data, context) => {
     );
 
     return {
-      preferenceId: response.data.id,
       init_point: response.data.init_point,
     };
-
   } catch (error) {
     console.error("🔥 MP ERROR REAL:", error.response?.data || error);
-
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-
-    throw new functions.https.HttpsError(
-      "internal",
-      "Error interno creando preferencia"
-    );
+    throw new functions.https.HttpsError("internal", "Error creando preferencia");
   }
 });
 
@@ -105,25 +79,21 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
       }
     );
 
-    const { status, metadata } = mpRes.data;
-    const appointmentId = metadata?.appointmentId;
+    const { status, external_reference } = mpRes.data;
+    if (!external_reference) return res.sendStatus(200);
 
-    if (!appointmentId) return res.sendStatus(200);
+    const appointmentRef = admin.database().ref(`appointments/${external_reference}`);
 
     if (status === "approved") {
-      await admin.database()
-        .ref(`appointments/${appointmentId}`)
-        .update({
-          paid: true,
-          paymentStatus: "approved",
-          paidAt: admin.database.ServerValue.TIMESTAMP,
-        });
+      await appointmentRef.update({
+        paid: true,
+        paymentStatus: "approved",
+        paidAt: admin.database.ServerValue.TIMESTAMP,
+      });
     } else {
-      await admin.database()
-        .ref(`appointments/${appointmentId}`)
-        .update({
-          paymentStatus: status,
-        });
+      await appointmentRef.update({
+        paymentStatus: status,
+      });
     }
 
     res.sendStatus(200);
