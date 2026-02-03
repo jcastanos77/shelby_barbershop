@@ -49,6 +49,8 @@ class PaymentPage extends StatelessWidget {
         region: 'us-central1',
       ).httpsCallable('createMpPreference');
 
+      debugPrint("ID: $appointmentId");
+
       final result = await callable.call({
         'appointmentId': appointmentId,
         'amount': depositAmount,
@@ -63,7 +65,7 @@ class PaymentPage extends StatelessWidget {
       debugPrint("✅ CHECKOUT URL: $checkoutUrl");
 
     } catch (e) {
-
+      print(e);
       await db.child('appointments/$appointmentId').remove();
 
       Navigator.pushReplacement(
