@@ -116,14 +116,17 @@ exports.createMpPreference = onCall(
 
 /**
  * ============================
- * Webhook Mercado Pago
+ * Webhook Mercado Pago (PUBLICO)
+ * NO secrets
+ * NO auth
  * ============================
  */
 exports.mpWebhook = onRequest(
-  { secrets: ["MP_TOKEN"] },
+  { secrets: ["MP_TOKEN"] }, // 👈 NECESARIO
   async (req, res) => {
     try {
       const paymentId = req.body?.data?.id;
+
       if (!paymentId) {
         return res.status(200).send("ok");
       }
@@ -149,48 +152,31 @@ exports.mpWebhook = onRequest(
         return res.status(200).send("ok");
       }
 
-      const appointmentRef = admin
-        .database()
-        .ref(`appointments/${appointmentId}`);
+      const ref = admin.database().ref(`appointments/${appointmentId}`);
+      const snap = await ref.get();
 
-      const snapshot = await appointmentRef.get();
-      if (!snapshot.exists()) {
+      if (!snap.exists()) {
         return res.status(200).send("ok");
       }
 
-      const appointment = snapshot.val();
+      const appointment = snap.val();
 
-      /** 🛑 Evita reprocesar */
-      if (appointment.paid === true) {
+      if (Number(transaction_amount) !== Number(appointment.amount)) {
         return res.status(200).send("ok");
       }
 
-      /** 🛡️ Antifraude básico */
-      if (transaction_amount !== appointment.amount) {
-        console.warn(
-          "Monto no coincide",
-          transaction_amount,
-          appointment.amount
-        );
-        return res.status(200).send("ok");
-      }
+      await ref.update({
+        paid: status === "approved",
+        paymentStatus: status,
+        paidAt: admin.database.ServerValue.TIMESTAMP,
+      });
 
-      if (status === "approved") {
-        await appointmentRef.update({
-          paid: true,
-          paymentStatus: "approved",
-          paidAt: admin.database.ServerValue.TIMESTAMP,
-        });
-      } else {
-        await appointmentRef.update({
-          paymentStatus: status,
-        });
-      }
+      console.log("✅ webhook ok:", appointmentId, status);
 
       return res.status(200).send("ok");
     } catch (err) {
       console.error("🔥 WEBHOOK ERROR:", err);
-      return res.status(500).send("error");
+      return res.status(200).send("ok"); //
     }
   }
 );
