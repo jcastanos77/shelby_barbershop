@@ -50,6 +50,7 @@ class PaymentPage extends StatelessWidget {
       ).httpsCallable('createMpPreference');
 
       final result = await callable.call({
+        'appointmentId': appointmentId,
         'amount': depositAmount,
         'barberId': barberId,
         'dateKey': dateKey,

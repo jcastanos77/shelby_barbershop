@@ -28,13 +28,6 @@ setGlobalOptions({
 exports.createMpPreference = onCall(
   { secrets: ["MP_TOKEN"] },
   async (request) => {
-    /** 🔐 Auth obligatoria */
-    if (!request.auth) {
-      throw new HttpsError(
-        "unauthenticated",
-        "Debes estar autenticado para iniciar un pago"
-      );
-    }
 
     const {
       amount,
