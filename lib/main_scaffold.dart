@@ -1,4 +1,3 @@
-import 'package:barbershop/reviews_section.dart';
 import 'package:barbershop/services/LandingBarbersService.dart';
 import 'package:barbershop/services/LandingServicesService.dart';
 import 'package:barbershop/utils/bad_words_filter.dart';
@@ -773,7 +772,9 @@ class _MainScaffoldState extends State<MainScaffold>
                 ),
                 SizedBox(height: 8),
                 Text(
+                  maxLines: 5,
                   serviceData.description,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
