@@ -5,7 +5,7 @@ import 'models/PaymentErrorScreen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PaymentPage extends StatelessWidget {
-  final int depositAmount;
+  final int totalAmount;
   final String barberId;
   final String dateKey;
   final String hourKey;
@@ -14,7 +14,7 @@ class PaymentPage extends StatelessWidget {
 
   const PaymentPage({
     super.key,
-    required this.depositAmount,
+    required this.totalAmount,
     required this.barberId,
     required this.dateKey,
     required this.hourKey,
@@ -39,7 +39,7 @@ class PaymentPage extends StatelessWidget {
         'service': service,
         'dateKey': dateKey,
         'hourKey': hourKey,
-        'amount': depositAmount,
+        'amount': totalAmount,
         'paid': false,
         'paymentStatus': 'pending_payment',
         'createdAt': ServerValue.timestamp,
@@ -49,11 +49,9 @@ class PaymentPage extends StatelessWidget {
         region: 'us-central1',
       ).httpsCallable('createMpPreference');
 
-      debugPrint("ID: $appointmentId");
-
       final result = await callable.call({
         'appointmentId': appointmentId,
-        'amount': depositAmount,
+        'amount': totalAmount,
         'barberId': barberId,
         'dateKey': dateKey,
         'hourKey': hourKey,
@@ -125,7 +123,7 @@ class PaymentPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  "\$${depositAmount}",
+                  "\$${totalAmount}",
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 36,

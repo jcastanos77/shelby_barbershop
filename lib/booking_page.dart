@@ -1,6 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:add_2_calendar/add_2_calendar.dart';
 
 import 'PaymentPage.dart';
 import 'models/BarberModel.dart';
@@ -269,7 +268,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     }
 
     final service = widget.services.firstWhere((s) => s.name == selectedService);
-    final int depositAmount = (service.price * 0.3).round();
+    final int totalAmount = service.price;
 
     final barberId = selectedBarberId!;
     final dateKey = formatDate(selectedDate!);
@@ -282,16 +281,15 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           barberId: barberId,
           dateKey: dateKey,
           hourKey: hourKey,
-          depositAmount: depositAmount,
+          totalAmount: totalAmount,
           clientName: nameController.text,
           service: selectedService,
         ),
       ),
     );
 
-    // 👇 SOLO si el pago fue exitoso
     if (paymentSuccess == true) {
-      await _saveAppointmentAfterPayment(depositAmount);
+      await _saveAppointmentAfterPayment(totalAmount);
     }
   }
 
@@ -317,13 +315,11 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           'service': selectedService,
           'price': service.price,
           'duration': service.duration,
-
           'status': 'confirmed',
           'depositRequired': depositAmount,
           'depositPaid': depositAmount,
           'paymentStatus': 'paid',
           'paymentMethod': 'online',
-
           'createdAt': ServerValue.timestamp,
         });
       });
@@ -359,81 +355,6 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
       setState(() => isLoading = false);
     }
   }
-
-  Future<void> _saveAppointment() async {
-
-    if (selectedDate == null ||
-        selectedTime == null ||
-        selectedBarberId == null ||
-        nameController.text.isEmpty ||
-        phoneController.text.isEmpty) {
-      _showSnackBar('Completa todos los campos', Colors.orange);
-      return;
-    }
-
-    setState(() => isLoading = true);
-
-    final dateKey = formatDate(selectedDate!);
-    final hourKey = formatHour(selectedTime!);
-    final barberId = selectedBarberId!;
-
-    final service = widget.services.firstWhere((s) => s.name == selectedService);
-
-    final ref = FirebaseDatabase.instance
-        .ref('appointments/$barberId/$dateKey/$hourKey');
-
-    try {
-      final result = await ref.runTransaction((current) {
-        if (current != null) {
-          return Transaction.abort();
-        }
-
-        final int depositAmount = (service.price * 0.3).round();
-
-        return Transaction.success({
-          'clientName': nameController.text,
-          'phone': phoneController.text,
-          'service': selectedService,
-          'price': service.price,
-          'duration': service.duration,
-          'status': 'pending_payment',
-          'depositRequired': depositAmount,
-          'depositPaid': 0,
-          'paymentMethod': '',
-          'paymentStatus': 'pending',
-
-          'createdAt': ServerValue.timestamp,
-        });
-      });
-
-      if (!result.committed) {
-        _showSnackBar('Ese horario ya fue reservado', Colors.red);
-        return;
-      }
-
-      final appointmentDateTime = DateTime(
-        selectedDate!.year,
-        selectedDate!.month,
-        selectedDate!.day,
-        selectedTime!.hour,
-        selectedTime!.minute,
-      );
-
-      final barberName =
-      widget.barbers.firstWhere((b) => b.id == barberId).name;
-
-      _showSnackBar('Cita confirmada con $barberName', Colors.green);
-      await _showCalendarDialog(
-          appointmentDateTime, service.duration, barberName);
-
-      _resetForm();
-    } catch (e) {
-      _showSnackBar('Error al guardar la cita', Colors.red);
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
 
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -998,8 +919,6 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     final service = widget.services.firstWhere((s) => s.name == selectedService);
     final barber = widget.barbers.firstWhere((b) => b.id == selectedBarberId);
 
-    final int depositAmount = (service.price * 0.3).round();
-
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1031,12 +950,6 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           SizedBox(height: 16),
           _buildSummaryRow("Servicio", selectedService, ""),
           _buildSummaryRow("Precio total", "\$${service.price}", ""),
-          _buildSummaryRow("Anticipo (30%)", "\$${depositAmount}", ""),
-          _buildSummaryRow(
-            "Restante",
-            "\$${service.price - depositAmount}",
-            "a pagar en barbería",
-          ),
           _buildSummaryRow("Barbero", barber.name, ""),
           _buildSummaryRow(
             "Fecha",
@@ -1195,7 +1108,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
                   Icon(Icons.event_available, color: Colors.white),
                   SizedBox(width: 10),
                   Text(
-                    "Pagar anticipo y reservar",
+                    "Pagar y reservar",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
