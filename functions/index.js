@@ -84,11 +84,11 @@ exports.createMpPreference = onCall(
 
           back_urls: {
             success:
-              "https://neon-seahorse-b85142.netlify.app/#/payment-result?status=approved",
+              "https://neon-seahorse-b85142.netlify.app/#/payment-result?id=${appointmentId}&status=approved",
             failure:
               "https://neon-seahorse-b85142.netlify.app/#/payment-result?status=rejected",
             pending:
-              "https://neon-seahorse-b85142.netlify.app/#/payment-result?status=pending",
+              "https://neon-seahorse-b85142.netlify.app/#/payment-result?id=${appointmentId}&status=pending",
           },
 
           auto_return: "approved",

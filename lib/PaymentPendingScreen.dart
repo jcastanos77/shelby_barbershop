@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 
-class PaymentSuccessScreen extends StatelessWidget {
-  final String clientName;
-  final String service;
-
-  const PaymentSuccessScreen({
-    super.key,
-    required this.clientName,
-    required this.service,
-  });
+class PaymentPendingScreen extends StatelessWidget {
+  const PaymentPendingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +18,12 @@ class PaymentSuccessScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 80),
+              const Icon(Icons.schedule, color: Colors.orange, size: 80),
 
               const SizedBox(height: 18),
 
               const Text(
-                "¡Pago confirmado!",
+                "Pago pendiente",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -38,10 +31,13 @@ class PaymentSuccessScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
 
-              _info("Cliente", clientName),
-              _info("Servicio", service),
+              const Text(
+                "Tu cita se confirmará automáticamente\ncuando completes el pago en efectivo.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white60),
+              ),
 
               const SizedBox(height: 28),
 
@@ -49,27 +45,14 @@ class PaymentSuccessScreen extends StatelessWidget {
                 onPressed: () =>
                     Navigator.popUntil(context, (r) => r.isFirst),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: Colors.orange,
                   minimumSize: const Size(double.infinity, 50),
                 ),
-                child: const Text("Listo"),
+                child: const Text("Entendido"),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _info(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white60)),
-          Text(value, style: const TextStyle(color: Colors.white)),
-        ],
       ),
     );
   }
