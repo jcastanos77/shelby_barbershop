@@ -29,25 +29,9 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
     super.dispose();
   }
 
-  // =========================
-  // CORE LOGIC
-  // =========================
   void _listenAppointment() {
     final uri = Uri.base;
-
-    Map<String, String> params = {};
-
-// normal
-    params.addAll(uri.queryParameters);
-
-// si viene con #/payment-result?...
-    if (params.isEmpty && uri.fragment.contains('?')) {
-      final frag = Uri.parse(uri.fragment);
-      params.addAll(frag.queryParameters);
-    }
-
-    final appointmentId = params['id'];
-    final statusFromMp = params['status'];
+    final appointmentId = uri.queryParameters['id'];
 
     if (appointmentId == null) {
       _goError("Cita inválida");
@@ -56,21 +40,19 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
 
     final ref = FirebaseDatabase.instance.ref('appointments/$appointmentId');
 
-    /// 🔥 Escuchamos realtime hasta que webhook confirme
     _sub = ref.onValue.listen((event) {
       if (!event.snapshot.exists) return;
 
-      final data = Map<String, dynamic>.from(
-        event.snapshot.value as Map,
-      );
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
 
-      final paid = data['paid'] == true;
       final paymentStatus = data['paymentStatus'];
+      final paid = data['paid'] == true;
 
       final clientName = data['clientName'] ?? '';
       final service = data['service'] ?? '';
 
-      // ✅ CONFIRMADO POR WEBHOOK (única verdad)
+      /// ✅ SOLO FIREBASE MANDA
+
       if (paid && paymentStatus == "approved") {
         _sub?.cancel();
 
@@ -86,7 +68,9 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
         return;
       }
 
-      if (statusFromMp == "pending") {
+      if (paymentStatus == "pending") {
+        _sub?.cancel();
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -96,8 +80,8 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
         return;
       }
 
-      // ❌ Rechazado
-      if (statusFromMp == "rejected") {
+      if (paymentStatus == "rejected") {
+        _sub?.cancel();
         _goError("Pago rechazado");
       }
     });
