@@ -35,8 +35,19 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
   void _listenAppointment() {
     final uri = Uri.base;
 
-    final appointmentId = uri.queryParameters['id'] ?? uri.queryParameters['appointmentId'];
-    final statusFromMp = uri.queryParameters['status'];
+    Map<String, String> params = {};
+
+// normal
+    params.addAll(uri.queryParameters);
+
+// si viene con #/payment-result?...
+    if (params.isEmpty && uri.fragment.contains('?')) {
+      final frag = Uri.parse(uri.fragment);
+      params.addAll(frag.queryParameters);
+    }
+
+    final appointmentId = params['id'];
+    final statusFromMp = params['status'];
 
     if (appointmentId == null) {
       _goError("Cita inválida");

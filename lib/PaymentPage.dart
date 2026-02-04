@@ -66,7 +66,6 @@ class PaymentPage extends StatelessWidget {
 
     } catch (e) {
       print(e);
-      await db.child('appointments/$appointmentId').remove();
 
       Navigator.pushReplacement(
         context,
