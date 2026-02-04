@@ -82,7 +82,7 @@ class PaymentPage extends StatelessWidget {
     // 🚀 REDIRECCIÓN FUERA DEL TRY
     await launchUrl(
       Uri.parse(checkoutUrl),
-      mode: LaunchMode.externalApplication,
+      mode: LaunchMode.platformDefault,
     );
 
   }
