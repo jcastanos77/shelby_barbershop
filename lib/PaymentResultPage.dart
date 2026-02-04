@@ -35,7 +35,7 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
   void _listenAppointment() {
     final uri = Uri.base;
 
-    final appointmentId = uri.queryParameters['id'];
+    final appointmentId = uri.queryParameters['id'] ?? uri.queryParameters['appointmentId'];
     final statusFromMp = uri.queryParameters['status'];
 
     if (appointmentId == null) {
