@@ -82,12 +82,11 @@ exports.createMpPreference = onCall(
             service,
           },
 
-          back_urls: {
-           success: "https://neon-seahorse-b85142.netlify.app/payment-result?status=approved&id=${appointmentId}",
-           failure: "https://neon-seahorse-b85142.netlify.app/payment-result?status=rejected&id=${appointmentId}",
-           pending: "https://neon-seahorse-b85142.netlify.app/payment-result?status=pending&id=${appointmentId}",
-          },
-
+         back_urls: {
+           success: `https://neon-seahorse-b85142.netlify.app/payment-result?status=approved&id=${appointmentId}`,
+           failure: `https://neon-seahorse-b85142.netlify.app/payment-result?status=rejected&id=${appointmentId}`,
+           pending: `https://neon-seahorse-b85142.netlify.app/payment-result?status=pending&id=${appointmentId}`,
+         },
           auto_return: "approved",
         },
         {
