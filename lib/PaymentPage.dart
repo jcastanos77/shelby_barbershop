@@ -1,8 +1,8 @@
-import 'dart:html' as html;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'models/PaymentErrorScreen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PaymentPage extends StatelessWidget {
   final int depositAmount;
@@ -80,7 +80,11 @@ class PaymentPage extends StatelessWidget {
     }
 
     // 🚀 REDIRECCIÓN FUERA DEL TRY
-    html.window.location.href = checkoutUrl;
+    await launchUrl(
+      Uri.parse(checkoutUrl),
+      mode: LaunchMode.externalApplication,
+    );
+
   }
 
 

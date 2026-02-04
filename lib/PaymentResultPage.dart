@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -34,7 +33,7 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
   // CORE LOGIC
   // =========================
   void _listenAppointment() {
-    final uri = Uri.parse(html.window.location.href);
+    final uri = Uri.base;
 
     final appointmentId = uri.queryParameters['id'];
     final statusFromMp = uri.queryParameters['status'];

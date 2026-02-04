@@ -41,7 +41,7 @@ dependencies:
   firebase_storage: ^12.3.0
   intl: ^0.18.0
   table_calendar: ^3.0.9
-  url_launcher: ^6.1.7
+  url_launcher: ^6.3.2
   add_2_calendar: ^3.0.1
   firebase_database: ^11.0.0
   mercado_pago_mobile_checkout: ^0.1.1
