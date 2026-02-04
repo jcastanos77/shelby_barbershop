@@ -1,8 +1,9 @@
+import 'package:barbershop/reviews_section.dart';
 import 'package:barbershop/services/LandingBarbersService.dart';
 import 'package:barbershop/services/LandingServicesService.dart';
+import 'package:barbershop/utils/bad_words_filter.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'admin_dashboard.dart';
 import 'booking_page.dart';
 import 'models/BarberModel.dart';
 import 'models/ServiceModel.dart';
@@ -28,6 +29,13 @@ class _MainScaffoldState extends State<MainScaffold>
 
   final _servicesService = LandingServicesService();
   final _barbersService = LandingBarbersService();
+  final _reviewNameCtrl = TextEditingController();
+  final _reviewCommentCtrl = TextEditingController();
+  int _reviewRating = 5;
+
+  late final PageController _servicesPageController;
+  late final PageController _reviewsPageController;
+  late final PageController _reviewsSkeletonController;
 
   List<ServiceModel> servicesF = [];
   List<BarberModel> barbers = [];
@@ -39,6 +47,9 @@ class _MainScaffoldState extends State<MainScaffold>
     load();
     _setupAnimations();
     _startAnimations();
+    _servicesPageController = PageController(viewportFraction: 0.85);
+    _reviewsPageController = PageController(viewportFraction: .9);
+    _reviewsSkeletonController = PageController(viewportFraction: .9);
   }
 
   Future<void> load() async {
@@ -46,76 +57,9 @@ class _MainScaffoldState extends State<MainScaffold>
     barbers = await _barbersService.getBarbers();
     setState(() => loading = false);
   }
-  final List<Map<String, dynamic>> services = const [
-    {
-      'name': 'Corte + Facial',
-      'price': '\$220',
-      'icon': 'cut',
-      'description': 'Corte de cabello mas mascarilla.',
-      'descriptionLarge':'Corte de cabello más... mascarilla de puntos negros, crema exfoliante para remover y limpiar células muertas, mascarilla hidratante de colágeno, todo con vapor para abrir los poros, al final una crema para el cuidado de tu piel, incluyendo masaje',
-      'duration': '45 min',
-      'gradient': [0xFF8B4513, 0xFFA0522D]
-    },
-    {
-      'name': 'Corte Vip',
-      'price': '\$400',
-      'icon': 'face',
-      'description': 'Corte, secado y peinado',
-      'descriptionLarge':'Corte de cabello, secado y peinado, arreglo de barba y bigote con vapor mascarilla de puntos negros y exfoliación facial, mascarilla de colágeno para hidratar piel, mascarilla para ojera, arreglo de cejas y aplicación de Wax, incluyendo masaje',
-      'duration': '45 min',
-      'gradient': [0xFF2E8B57, 0xFF3CB371],
-    },
-    {
-      'name': 'Corte + Barba',
-      'price': '\$250',
-      'icon': 'content_cut',
-      'description': 'Servicio completo de lujo',
-      'descriptionLarge':'Corte de cabello, secado y peinado, arreglo de barba y bigote con vapor con aplicación de crema y aceites para el cuidado de tu barba, incluyendo masaje',
-      'duration': '45 min',
-      'gradient': [0xFF4169E1, 0xFF1E90FF]
-    },
-  ];
 
 
-  final List<Map<String, dynamic>> servicesClasics = const [
-    {
-      'name': 'Corte de pelo clásico',
-      'price': '\$150',
-      'color': 0xFF4169E1
-    },{
-      'name': 'Corte de pelo rasurado',
-      'price': '\$160',
-      'color': 0xFF4169E1
-    },{
-      'name': 'Limpieza de barba',
-      'price': '\$100',
-      'color': 0xFF4169E1
-    },{
-      'name': 'Tinte de barba',
-      'price': '\$80',
-      'color': 0xFF4169E1
-    },{
-      'name': 'Tinte de cabello',
-      'price': '\$130',
-      'color': 0xFF4169E1
-    },{
-      'name': 'Limpieza de ceja',
-      'price': '\$30',
-      'color': 0xFF4169E1
-    },{
-      'name': 'Aplicación de Wax',
-      'price': '\$50',
-      'color': 0xFF4169E1
-    },{
-      'name': 'Exfoliación facial',
-      'price': '\$100',
-      'color': 0xFF4169E1
-    },{
-      'name': 'Mascarilla negra',
-      'price': '\$70',
-      'color': 0xFF4169E1
-    }
-  ];
+
 
   final List<String> galleryImages = const [
     'assets/images/gallery1.jpg',
@@ -179,235 +123,6 @@ class _MainScaffoldState extends State<MainScaffold>
     }
   }
 
-  // Función para mostrar el login de barberos
-  void _showBarberLogin(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => _buildBarberLoginModal(context),
-    );
-  }
-
-  // Modal de login para barberos
-  Widget _buildBarberLoginModal(BuildContext context) {
-    final TextEditingController codeController = TextEditingController();
-    bool isLoading = false;
-
-    // Códigos de acceso para barberos
-    final Map<String, Map<String, dynamic>> accessCodes = {
-      'FERNANDO2024': {'name': 'Fernando Badilla', 'id': 'fernando'},
-      'JORGE2024': {'name': 'Jorge Castaños', 'id': 'jorge'},
-      'ADMIN2024': {'name': 'Administrador', 'id': 'admin'},
-    };
-
-    return StatefulBuilder(
-      builder: (context, setState) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.75,
-          decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
-            ),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Handle
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[600],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 30),
-
-                // Header con icono
-                Column(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [accentColor, Color(0xFFE6C86A)]),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: accentColor.withOpacity(0.3),
-                            blurRadius: 15,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Icon(Icons.admin_panel_settings, size: 40, color: darkBg),
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      'Acceso de Barbero',
-                      style: TextStyle(
-                        color: accentColor,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Panel de administración',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 40),
-
-                // Campo de código
-                Container(
-                  decoration: BoxDecoration(
-                    color: darkBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: accentColor.withOpacity(0.3)),
-                  ),
-                  child: TextField(
-                    controller: codeController,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 2,
-                    ),
-                    textAlign: TextAlign.center,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: InputDecoration(
-                      labelText: 'Código de Acceso',
-                      labelStyle: TextStyle(color: accentColor),
-                      hintText: 'Ejemplo: FERNANDO',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                        letterSpacing: 1,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(20),
-                    ),
-                    onSubmitted: (_) => _attemptLogin(context, codeController, accessCodes, setState),
-                  ),
-                ),
-
-                SizedBox(height: 30),
-
-                // Botón de login
-                Container(
-                  height: 60,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [accentColor, Color(0xFFE6C86A)]),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accentColor.withOpacity(0.3),
-                        blurRadius: 15,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : () => _attemptLogin(context, codeController, accessCodes, setState),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: isLoading
-                        ? CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(darkBg),
-                      strokeWidth: 3,
-                    )
-                        : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.login, color: darkBg),
-                        SizedBox(width: 12),
-                        Text(
-                          'ACCEDER AL PANEL',
-                          style: TextStyle(
-                            color: darkBg,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Función para intentar hacer login
-  void _attemptLogin(BuildContext context, TextEditingController codeController,
-      Map<String, Map<String, dynamic>> accessCodes, StateSetter setState) async {
-    String code = codeController.text.trim().toUpperCase();
-
-    if (code.isEmpty) {
-      _showError(context, 'Por favor ingresa tu código de acceso');
-      return;
-    }
-
-    setState(() => true); // isLoading = true
-
-    await Future.delayed(Duration(milliseconds: 800));
-
-    if (accessCodes.containsKey(code)) {
-      // Navegar al dashboard
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => AdminDashboard(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: Offset(1.0, 0.0),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                )),
-                child: child,
-              ),
-            );
-          },
-        ),
-      );
-    } else {
-      setState(() => false); // isLoading = false
-      _showError(context, 'Código incorrecto. Verifica tu código de acceso.');
-    }
-  }
-
-  void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: TextStyle(fontWeight: FontWeight.w500)),
-        backgroundColor: Colors.red[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: EdgeInsets.all(16),
-      ),
-    );
-  }
-
   Future<void> _launchPhone() async {
     final Uri phoneUrl = Uri.parse('tel:+526442030885');
     try {
@@ -455,7 +170,21 @@ class _MainScaffoldState extends State<MainScaffold>
     _heroController.dispose();
     _servicesController.dispose();
     _galleryController.dispose();
+    _reviewNameCtrl.dispose();
+    _reviewCommentCtrl.dispose();
+    _servicesPageController.dispose();
+    _reviewsPageController.dispose();
+    _reviewsSkeletonController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    for (final img in galleryImages) {
+      precacheImage(AssetImage(img), context);
+    }
   }
 
   IconData _iconFromString(String iconName) {
@@ -488,22 +217,15 @@ class _MainScaffoldState extends State<MainScaffold>
       extendBodyBehindAppBar: true,
 
       floatingActionButton: _buildFloatingActionButton(),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildHeroSection(screenHeight),
-                _buildServicesSection(isMobile),
-                _buildStatsSection(),
-                _buildGallerySection(galleryCrossAxisCount),
-                _buildTestimonialsSection(),
-                _buildContactSection(),
-                _buildFooter(),
-              ],
-            ),
-          ),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _buildHeroSection(screenHeight)),
+          SliverToBoxAdapter(child: _buildServicesSection(isMobile)),
+          SliverToBoxAdapter(child: _buildStatsSection()),
+          SliverToBoxAdapter(child: _buildGallerySection(galleryCrossAxisCount)),
+          SliverToBoxAdapter(child: _buildTestimonialsSection()),
+          SliverToBoxAdapter(child: _buildContactSection()),
+          SliverToBoxAdapter(child: _buildFooter()),
         ],
       ),
     );
@@ -979,8 +701,9 @@ class _MainScaffoldState extends State<MainScaffold>
     return SizedBox(
       height: 350,
       child: PageView.builder(
+        padEnds: false,
         itemCount: filtered.length,
-        controller: PageController(viewportFraction: 0.85),
+        controller: _servicesPageController,
         itemBuilder: (context, index) {
           return Transform.scale(
             scale: _servicesStagger.value,
@@ -1120,7 +843,7 @@ class _MainScaffoldState extends State<MainScaffold>
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildStatItem('500+', 'Clientes\nSatisfechos'),
-          _buildStatItem('25+', 'Años de\nExperiencia'),
+          _buildStatItem('3+', 'Años de\nExperiencia'),
           _buildStatItem('100%', 'Calidad\nGarantizada'),
         ],
       ),
@@ -1164,18 +887,17 @@ class _MainScaffoldState extends State<MainScaffold>
             builder: (context, child) {
               return Transform.scale(
                 scale: _galleryStagger.value,
-                child: GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                child: GridView.builder(
                   shrinkWrap: true,
                   physics: NeverScrollableScrollPhysics(),
-                  children: galleryImages.asMap().entries.map((entry) {
-                    int index = entry.key;
-                    String url = entry.value;
-                    return _buildGalleryItem(url, index);
-                  }).toList(),
-                ),
+                  itemCount: galleryImages.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemBuilder: (_, i) => _buildGalleryItem(galleryImages[i], i),
+                )
               );
             },
           ),
@@ -1237,51 +959,246 @@ class _MainScaffoldState extends State<MainScaffold>
   }
 
   Widget _buildTestimonialsSection() {
+    final reviewsService = LandingBarbersService();
+
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [darkBg, cardBg],
-        ),
+        gradient: LinearGradient(colors: [darkBg, cardBg]),
       ),
       child: Column(
         children: [
-          _buildSectionHeader('LO QUE DICEN NUESTROS CLIENTES', 'Testimonios reales'),
-          SizedBox(height: 60),
+
+          _buildSectionHeader(
+            'LO QUE DICEN NUESTROS CLIENTES',
+            'Testimonios reales',
+          ),
+
+          const SizedBox(height: 50),
+
+          /// 🔥 REVIEWS
+          StreamBuilder(
+            stream: reviewsService.streamReviews(),
+            builder: (_, snapshot) {
+
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return _reviewSkeleton();
+              }
+
+              final reviews = snapshot.data ?? [];
+
+              if (reviews.isEmpty) {
+                return const Text(
+                  "Sé el primero en opinar ✂️",
+                  style: TextStyle(color: Colors.white),
+                );
+              }
+
+              return SizedBox(
+                height: 220,
+                child: PageView.builder(
+                  padEnds: false,
+                  controller: _reviewsPageController,
+                  itemCount: reviews.length,
+                  itemBuilder: (_, i) {
+                    final r = reviews[i];
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.all(30),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: accentColor.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              5,
+                                  (index) => Icon(
+                                index < r.rating
+                                    ? Icons.star
+                                    : Icons.star_border,
+                                color: accentColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: Text(
+                              '"${cleanBadWords(r.comment)}"',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontStyle: FontStyle.italic,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          Text(
+                            '- ${r.name}',
+                            style: TextStyle(
+                              color: accentColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 40),
+
+          /// 🔥 FORM
           Container(
-            padding: EdgeInsets.all(30),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: cardBg,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: accentColor.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               children: [
+
+                _reviewInput(
+                  controller: _reviewNameCtrl,
+                  hint: "Tu nombre",
+                  icon: Icons.person,
+                ),
+
+                const SizedBox(height: 14),
+
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      /// 🔥 label + icon arriba (mucho más limpio)
+                      Row(
+                        children: [
+                          Icon(Icons.chat_bubble_outline, color: accentColor, size: 18),
+                          const SizedBox(width: 8),
+                          const Text(
+                            "Tu experiencia",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      TextField(
+                        controller: _reviewCommentCtrl,
+                        maxLines: 4,
+                        style: const TextStyle(color: Colors.white),
+                        cursorColor: accentColor,
+                        decoration: const InputDecoration(
+                          hintText: "Cuéntanos tu experiencia...",
+                          hintStyle: TextStyle(color: Colors.white38),
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (index) =>
-                      Icon(Icons.star, color: accentColor, size: 24)),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  '"La mejor barbería de la ciudad. Excelente servicio y atención al detalle. Siempre salgo satisfecho con mi corte."',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontStyle: FontStyle.italic,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 20),
-                Text(
-                  '- Carlos M.',
-                  style: TextStyle(
-                    color: accentColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                  children: List.generate(
+                    5,
+                        (i) => IconButton(
+                      onPressed: () =>
+                          setState(() => _reviewRating = i + 1),
+                      icon: Icon(
+                        i < _reviewRating
+                            ? Icons.star
+                            : Icons.star_border,
+                        color: accentColor,
+                      ),
+                    ),
                   ),
                 ),
+              SizedBox(height: 16,),
+                GestureDetector(
+                  onTap: () async {
+                    if (_reviewNameCtrl.text.isEmpty ||
+                        _reviewCommentCtrl.text.isEmpty) return;
+
+                    await reviewsService.addReview(
+                      _reviewNameCtrl.text,
+                      _reviewCommentCtrl.text,
+                      _reviewRating,
+                    );
+
+                    _reviewNameCtrl.clear();
+                    _reviewCommentCtrl.clear();
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text("Gracias por tu reseña 🙌"),
+                        backgroundColor: accentColor,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          accentColor,
+                          const Color(0xFFE6C86A),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withOpacity(.4),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.star, color: Colors.black),
+                        SizedBox(width: 10),
+                        Text(
+                          "PUBLICAR RESEÑA",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+
               ],
             ),
           ),
@@ -1453,6 +1370,70 @@ class _MainScaffoldState extends State<MainScaffold>
       ],
     );
   }
+
+  Widget _reviewSkeleton() {
+    return SizedBox(
+      height: 220,
+      child: PageView.builder(
+        itemCount: 3,
+        controller: _reviewsSkeletonController,
+        itemBuilder: (_, __) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: cardBg.withOpacity(.5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+
+                Container(height: 18, width: 120, color: Colors.white12),
+                const SizedBox(height: 20),
+                Container(height: 14, width: double.infinity, color: Colors.white12),
+                const SizedBox(height: 8),
+                Container(height: 14, width: double.infinity, color: Colors.white12),
+                const SizedBox(height: 8),
+                Container(height: 14, width: 150, color: Colors.white12),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _reviewInput({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        style: const TextStyle(color: Colors.white),
+        cursorColor: accentColor,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.white38),
+          prefixIcon: Icon(icon, color: accentColor),
+          border: InputBorder.none,
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+        ),
+      ),
+    );
+  }
+
+
 }
 
 class Servicio {

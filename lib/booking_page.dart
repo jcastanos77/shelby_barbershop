@@ -85,35 +85,28 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
 
     setState(() => isLoadingSlots = true);
 
-    final dateKey = formatDate(selectedDate!);
-    final barberId = selectedBarberId!;
-
-    final working = workingHours[selectedDate!.weekday] ?? [];
-    final allSlots = <TimeOfDay>[];
-
-    // 1️⃣ Generar TODOS los slots posibles
-    for (final hour in working) {
-      for (final minute in [0, 45]) {
-        final slotDateTime = DateTime(
-          selectedDate!.year,
-          selectedDate!.month,
-          selectedDate!.day,
-          hour,
-          minute,
-        );
-
-        if (slotDateTime.isAfter(DateTime.now())) {
-          allSlots.add(TimeOfDay(hour: hour, minute: minute));
-        }
-      }
-    }
-
     try {
-      // 2️⃣ Leer TODO el día de una sola vez
+      final date = selectedDate!;
+      final barberId = selectedBarberId!;
+      final dateKey = formatDate(date);
+
+      final working = workingHours[date.weekday] ?? [];
+
+      // ✅ 1. generar SOLO horas en punto (mucho más simple)
+      final now = DateTime.now();
+
+      final allSlots = working
+          .map((h) => DateTime(date.year, date.month, date.day, h))
+          .where((dt) => dt.isAfter(now))
+          .map((dt) => TimeOfDay(hour: dt.hour, minute: 0))
+          .toList();
+
+      // ✅ 2. leer firebase una sola vez
       final snap = await FirebaseDatabase.instance
           .ref('appointments/$barberId/$dateKey')
           .get();
 
+      // si no hay citas, listo
       if (!snap.exists) {
         setState(() {
           availableSlots = allSlots;
@@ -122,47 +115,34 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         return;
       }
 
-      final Map<String, dynamic> data =
-      Map<String, dynamic>.from(snap.value as Map);
+      final data = Map<String, dynamic>.from(snap.value as Map);
 
-      // 3️⃣ Slots ocupados
-      final takenSlots = <String>{};
+      // ✅ 3. sets son O(1) lookup (mucho más rápido que loops)
+      final taken = <String>{};
+      final blockedMinutes = <int>{};
 
-      // 4️⃣ Bloques
-      final blocks = <Map<String, String>>[];
-
-      data.forEach((time, value) {
-        final v = Map<String, dynamic>.from(value);
+      for (final entry in data.entries) {
+        final v = Map<String, dynamic>.from(entry.value);
 
         if (v['type'] == 'block') {
-          blocks.add({
-            'from': v['from'],
-            'to': v['to'],
-          });
-        } else {
-          takenSlots.add(time); // ej. "10:00"
-        }
-      });
+          final from = _toMinutes(v['from']);
+          final to = _toMinutes(v['to']);
 
-      // 5️⃣ Filtrar
-      final filtered = allSlots.where((slot) {
-        final slotStr = formatHour(slot);
-        final slotMin = slot.hour * 60 + slot.minute;
-
-        // ❌ cita existente
-        if (takenSlots.contains(slotStr)) return false;
-
-        // ❌ dentro de bloque
-        for (final b in blocks) {
-          final from = _toMinutes(b['from']!);
-          final to = _toMinutes(b['to']!);
-
-          if (slotMin >= from && slotMin < to) {
-            return false;
+          // marcar cada hora bloqueada
+          for (int m = from; m < to; m += 60) {
+            blockedMinutes.add(m);
           }
+        } else {
+          taken.add(entry.key); // "10:00"
         }
+      }
 
-        return true;
+      // ✅ 4. filtrar en O(n)
+      final filtered = allSlots.where((slot) {
+        final str = formatHour(slot);
+        final min = slot.hour * 60;
+
+        return !taken.contains(str) && !blockedMinutes.contains(min);
       }).toList();
 
       setState(() {
@@ -179,45 +159,6 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
   int _toMinutes(String time) {
     final p = time.split(':');
     return int.parse(p[0]) * 60 + int.parse(p[1]);
-  }
-
-  // Nueva función para agregar al calendario
-  Future<void> _addToCalendar(DateTime appointmentDateTime, int serviceDuration, String barberName) async {
-    try {
-      final service = widget.services.firstWhere((s) => s.name == selectedService);
-      final servicePrice = service.price;
-
-      final Event event = Event(
-        title: '$selectedService - Barbería',
-        description: 'Cita en barbería\n'
-            'Servicio: $selectedService ($servicePrice)\n'
-            'Barbero: $barberName\n'
-            'Cliente: ${nameController.text}\n'
-            'Teléfono: ${phoneController.text}\n'
-            'Duración: $serviceDuration minutos',
-        location: 'Barbería - [Agregar dirección aquí]',
-        startDate: appointmentDateTime,
-        endDate: appointmentDateTime.add(Duration(minutes: serviceDuration)),
-        iosParams: IOSParams(
-          reminder: Duration(minutes: 30), // Recordatorio 30 min antes
-          url: 'https://tu-barberia.com', // URL opcional de tu barbería
-        ),
-        androidParams: AndroidParams(
-          emailInvites: [], // Lista vacía por defecto
-        ),
-      );
-
-      final bool? result = await Add2Calendar.addEvent2Cal(event);
-
-      if (result == true) {
-        _showSnackBar("✅ Evento agregado al calendario", Colors.green);
-      } else {
-        _showSnackBar("❌ No se pudo agregar al calendario", Colors.orange);
-      }
-    } catch (e) {
-      print("Error adding to calendar: $e");
-      _showSnackBar("Error al agregar al calendario", Colors.red);
-    }
   }
 
   // Función para mostrar diálogo de confirmación de calendario
