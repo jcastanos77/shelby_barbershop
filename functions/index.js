@@ -88,7 +88,7 @@ exports.createMpPreference = onCall(
             ],
             installments: 1
           },
-
+          application_fee: 5,
           back_urls: {
             success: `${baseUrl}/payment-result?status=approved&id=${appointmentId}`,
             failure: `${baseUrl}/payment-result?status=rejected&id=${appointmentId}`,
