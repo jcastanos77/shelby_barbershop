@@ -5,7 +5,6 @@ import 'package:firebase_database/firebase_database.dart';
 
 import 'PaymentSuccessScreen.dart';
 import 'PaymentErrorScreen.dart';
-import 'PaymentPendingScreen.dart';
 
 class PaymentResultPage extends StatefulWidget {
   const PaymentResultPage({super.key});
@@ -30,8 +29,7 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
   }
 
   void _listenAppointment() {
-    final uri = Uri.base;
-    final appointmentId = uri.queryParameters['id'];
+    final appointmentId = Uri.base.queryParameters['id'];
 
     if (appointmentId == null) {
       _goError("Cita inválida");
@@ -51,8 +49,6 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
       final clientName = data['clientName'] ?? '';
       final service = data['service'] ?? '';
 
-      /// ✅ SOLO FIREBASE MANDA
-
       if (paid && paymentStatus == "approved") {
         _sub?.cancel();
 
@@ -63,18 +59,6 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
               clientName: clientName,
               service: service,
             ),
-          ),
-        );
-        return;
-      }
-
-      if (paymentStatus == "pending") {
-        _sub?.cancel();
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PaymentPendingScreen(),
           ),
         );
         return;

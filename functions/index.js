@@ -1,6 +1,6 @@
 /**
- * Firebase Functions v2 – Mercado Pago (PROD)
- * Hardened version
+ * Firebase Functions v2 – Mercado Pago
+ * SOLO TARJETA – versión estable para reservas
  */
 
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
@@ -10,25 +10,18 @@ const axios = require("axios");
 
 admin.initializeApp();
 
-/**
- * Opciones globales (costos + estabilidad)
- */
 setGlobalOptions({
   region: "us-central1",
   timeoutSeconds: 30,
   memory: "256MiB",
 });
 
-/**
- * ============================
- * Crear preferencia de pago
- * Callable (requiere auth)
- * ============================
- */
+/* =======================================================
+   CREATE PREFERENCE  (SOLO TARJETA)
+======================================================= */
 exports.createMpPreference = onCall(
   { secrets: ["MP_TOKEN"] },
   async (request) => {
-
     const {
       amount,
       barberId,
@@ -39,7 +32,6 @@ exports.createMpPreference = onCall(
       appointmentId,
     } = request.data || {};
 
-    /** 🧪 Validaciones duras */
     if (!appointmentId) {
       throw new HttpsError("invalid-argument", "appointmentId requerido");
     }
@@ -49,16 +41,15 @@ exports.createMpPreference = onCall(
       throw new HttpsError("invalid-argument", "Monto inválido");
     }
 
-    if (!barberId || !dateKey || !hourKey || !clientName || !service) {
-      throw new HttpsError("invalid-argument", "Datos incompletos");
-    }
-
     const MP_TOKEN = process.env.MP_TOKEN;
     if (!MP_TOKEN) {
-      throw new HttpsError("failed-precondition", "MP_TOKEN no configurado");
+      throw new HttpsError("failed-precondition", "MP_TOKEN faltante");
     }
 
     try {
+      const baseUrl =
+        "https://neon-seahorse-b85142.netlify.app"; // 👈 cambia si cambias dominio
+
       const response = await axios.post(
         "https://api.mercadopago.com/checkout/preferences",
         {
@@ -71,7 +62,6 @@ exports.createMpPreference = onCall(
             },
           ],
 
-          /** 🔗 Referencia dura para webhook */
           external_reference: appointmentId,
 
           metadata: {
@@ -81,12 +71,20 @@ exports.createMpPreference = onCall(
             clientName,
             service,
           },
+          payment_methods: {
+            excluded_payment_types: [
+              { id: "ticket" },        // OXXO / efectivo
+              { id: "atm" },
+              { id: "bank_transfer" }
+            ],
+            installments: 1
+          },
 
-         back_urls: {
-           success: `https://neon-seahorse-b85142.netlify.app/payment-result?status=approved&id=${appointmentId}`,
-           failure: `https://neon-seahorse-b85142.netlify.app/payment-result?status=rejected&id=${appointmentId}`,
-           pending: `https://neon-seahorse-b85142.netlify.app/payment-result?status=pending&id=${appointmentId}`,
-         },
+          back_urls: {
+            success: `${baseUrl}/payment-result?status=approved&id=${appointmentId}`,
+            failure: `${baseUrl}/payment-result?status=rejected&id=${appointmentId}`,
+          },
+
           auto_return: "approved",
         },
         {
@@ -101,31 +99,20 @@ exports.createMpPreference = onCall(
       };
     } catch (err) {
       console.error("🔥 MP CREATE ERROR:", err.response?.data || err);
-
-      throw new HttpsError(
-        "internal",
-        "No se pudo crear la preferencia de pago"
-      );
+      throw new HttpsError("internal", "Error creando preferencia");
     }
   }
 );
 
-/**
- * ============================
- * Webhook Mercado Pago (PUBLICO)
- * NO secrets
- * NO auth
- * ============================
- */
+/* =======================================================
+   WEBHOOK (confirmación real)
+======================================================= */
 exports.mpWebhook = onRequest(
-  { secrets: ["MP_TOKEN"] }, // 👈 NECESARIO
+  { secrets: ["MP_TOKEN"] },
   async (req, res) => {
     try {
       const paymentId = req.body?.data?.id;
-
-      if (!paymentId) {
-        return res.status(200).send("ok");
-      }
+      if (!paymentId) return res.status(200).send("ok");
 
       const MP_TOKEN = process.env.MP_TOKEN;
 
@@ -144,16 +131,12 @@ exports.mpWebhook = onRequest(
         transaction_amount,
       } = mpRes.data;
 
-      if (!appointmentId) {
-        return res.status(200).send("ok");
-      }
+      if (!appointmentId) return res.status(200).send("ok");
 
       const ref = admin.database().ref(`appointments/${appointmentId}`);
       const snap = await ref.get();
 
-      if (!snap.exists()) {
-        return res.status(200).send("ok");
-      }
+      if (!snap.exists()) return res.status(200).send("ok");
 
       const appointment = snap.val();
 
@@ -172,7 +155,7 @@ exports.mpWebhook = onRequest(
       return res.status(200).send("ok");
     } catch (err) {
       console.error("🔥 WEBHOOK ERROR:", err);
-      return res.status(200).send("ok"); //
+      return res.status(200).send("ok");
     }
   }
 );
