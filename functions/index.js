@@ -41,14 +41,22 @@ exports.createMpPreference = onCall(
       throw new HttpsError("invalid-argument", "Monto inválido");
     }
 
-    const MP_TOKEN = process.env.MP_TOKEN;
-    if (!MP_TOKEN) {
-      throw new HttpsError("failed-precondition", "MP_TOKEN faltante");
+    const barberSnap = await admin.database()
+      .ref(`barbers/${barberId}`)
+      .get();
+
+    if (!barberSnap.exists() || !barberSnap.val().mpAccessToken) {
+      throw new HttpsError(
+        "failed-precondition",
+        "El barbero no tiene Mercado Pago conectado"
+      );
     }
+
+    const barberToken = barberSnap.val().mpAccessToken;
 
     try {
       const baseUrl =
-        "https://neon-seahorse-b85142.netlify.app"; // 👈 cambia si cambias dominio
+        "https://neon-seahorse-b85142.netlify.app";
 
       const response = await axios.post(
         "https://api.mercadopago.com/checkout/preferences",
@@ -71,9 +79,10 @@ exports.createMpPreference = onCall(
             clientName,
             service,
           },
+
           payment_methods: {
             excluded_payment_types: [
-              { id: "ticket" },        // OXXO / efectivo
+              { id: "ticket" },
               { id: "atm" },
               { id: "bank_transfer" }
             ],
@@ -89,7 +98,7 @@ exports.createMpPreference = onCall(
         },
         {
           headers: {
-            Authorization: `Bearer ${MP_TOKEN}`,
+            Authorization: `Bearer ${barberToken}`, // 🔥 AQUÍ EL CAMBIO
           },
         }
       );
@@ -103,7 +112,6 @@ exports.createMpPreference = onCall(
     }
   }
 );
-
 /* =======================================================
    WEBHOOK (confirmación real)
 ======================================================= */
@@ -156,6 +164,48 @@ exports.mpWebhook = onRequest(
     } catch (err) {
       console.error("🔥 WEBHOOK ERROR:", err);
       return res.status(200).send("ok");
+    }
+  }
+);
+
+
+exports.exchangeMpCode = onCall(
+  { secrets: ["MP_TOKEN"] },
+  async (request) => {
+
+    const { code, uid } = request.data;
+
+    if (!code || !uid) {
+      throw new HttpsError("invalid-argument", "code/uid requeridos");
+    }
+
+    const MP_TOKEN = process.env.MP_TOKEN;
+
+    try {
+      const res = await axios.post(
+        "https://api.mercadopago.com/oauth/token",
+        {
+          grant_type: "authorization_code",
+          client_secret: MP_TOKEN,
+          code,
+          redirect_uri: "https://neon-seahorse-b85142.netlify.app/mp-callback",
+        }
+      );
+
+      const { access_token } = res.data;
+
+      await admin.database()
+        .ref(`barbers/${uid}`)
+        .update({
+          mpAccessToken: access_token,
+          mpConnected: true,
+        });
+
+      return { ok: true };
+
+    } catch (err) {
+      console.error(err.response?.data || err);
+      throw new HttpsError("internal", "MP OAuth error");
     }
   }
 );
