@@ -1,10 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-
-import 'PaymentSuccessScreen.dart';
-import 'PaymentErrorScreen.dart';
+import 'package:go_router/go_router.dart';
 
 class PaymentResultPage extends StatefulWidget {
   const PaymentResultPage({super.key});
@@ -52,18 +49,13 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
       if (paid && paymentStatus == "approved") {
         _sub?.cancel();
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PaymentSuccessScreen(
-              clientName: clientName,
-              service: service,
-            ),
-          ),
+        context.go(
+          '/payment-success?name=$clientName&service=$service',
         );
         return;
       }
 
+      // ❌ rechazado
       if (paymentStatus == "rejected") {
         _sub?.cancel();
         _goError("Pago rechazado");
@@ -72,17 +64,9 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
   }
 
   void _goError(String msg) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PaymentErrorScreen(message: msg),
-      ),
-    );
+    context.go('/payment-error?msg=$msg');
   }
 
-  // =========================
-  // UI Loading
-  // =========================
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
