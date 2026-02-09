@@ -14,7 +14,9 @@ class LandingBarbersService {
     final data = Map<String, dynamic>.from(snap.value as Map);
 
     return data.entries
-        .where((e) => e.value['active'] == true)
+        .where((e) =>
+        (e.value['active'] ?? false) == true &&
+        (e.value['mpConnected'] ?? false) == true)
         .map((e) => BarberModel.fromMap(e.key, e.value))
         .toList();
   }
