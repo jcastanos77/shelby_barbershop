@@ -35,30 +35,40 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
 
     final ref = FirebaseDatabase.instance.ref('appointments/$appointmentId');
 
+    // 🔥 timeout anti spinner infinito
+    Future.delayed(const Duration(seconds: 12), () {
+      if (mounted) {
+        context.go('/payment-error?msg=Pago no completado');
+      }
+    });
+
     _sub = ref.onValue.listen((event) {
       if (!event.snapshot.exists) return;
 
       final data = Map<String, dynamic>.from(event.snapshot.value as Map);
 
-      final paymentStatus = data['paymentStatus'];
       final paid = data['paid'] == true;
+      final status = data['paymentStatus'];
 
       final clientName = data['clientName'] ?? '';
       final service = data['service'] ?? '';
 
-      if (paid && paymentStatus == "approved") {
+      if (paid && status == "approved") {
         _sub?.cancel();
-
-        context.go(
-          '/payment-success?name=$clientName&service=$service',
-        );
+        context.go('/payment-success?name=$clientName&service=$service');
         return;
       }
 
-      // ❌ rechazado
-      if (paymentStatus == "rejected") {
+      if (status == "rejected") {
         _sub?.cancel();
-        _goError("Pago rechazado");
+        context.go('/payment-error?msg=Pago rechazado');
+        return;
+      }
+
+      // 🔥 pendiente / efectivo / cancelado
+      if (status == "pending" || status == "pending_payment") {
+        _sub?.cancel();
+        context.go('/payment-error?msg=Pago pendiente o cancelado');
       }
     });
   }
