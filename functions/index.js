@@ -1,6 +1,6 @@
 /**
  * Firebase Functions v2 – Mercado Pago
- * SOLO TARJETA – versión estable para reservas
+ * SOLO TARJETA – versión estable para reservas (SAFE)
  */
 
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
@@ -17,11 +17,12 @@ setGlobalOptions({
 });
 
 /* =======================================================
-   CREATE PREFERENCE  (SOLO TARJETA)
+   CREATE PREFERENCE  (NO crea cita todavía)
 ======================================================= */
 exports.createMpPreference = onCall(
   { secrets: ["MP_TOKEN"] },
   async (request) => {
+
     const {
       amount,
       barberId,
@@ -41,6 +42,17 @@ exports.createMpPreference = onCall(
       throw new HttpsError("invalid-argument", "Monto inválido");
     }
 
+    /* 🔥 guardamos SOLO intención (NO cita real) */
+    await admin.database().ref(`pendingPayments/${appointmentId}`).set({
+      barberId,
+      clientName,
+      service,
+      dateKey,
+      hourKey,
+      amount: parsedAmount,
+      createdAt: admin.database.ServerValue.TIMESTAMP,
+    });
+
     const barberSnap = await admin.database()
       .ref(`barbers/${barberId}`)
       .get();
@@ -54,16 +66,15 @@ exports.createMpPreference = onCall(
 
     const barberToken = barberSnap.val().mpAccessToken;
 
-    try {
-      const baseUrl =
-        "https://neon-seahorse-b85142.netlify.app";
+    const baseUrl = "https://neon-seahorse-b85142.netlify.app";
 
+    try {
       const response = await axios.post(
         "https://api.mercadopago.com/checkout/preferences",
         {
           items: [
             {
-              title: `Anticipo - ${service}`,
+              title: `Pago - ${service}`,
               quantity: 1,
               currency_id: "MXN",
               unit_price: parsedAmount,
@@ -71,14 +82,6 @@ exports.createMpPreference = onCall(
           ],
 
           external_reference: appointmentId,
-
-          metadata: {
-            barberId,
-            dateKey,
-            hourKey,
-            clientName,
-            service,
-          },
 
           payment_methods: {
             excluded_payment_types: [
@@ -88,10 +91,12 @@ exports.createMpPreference = onCall(
             ],
             installments: 1
           },
+
           application_fee: 5,
+
           back_urls: {
-            success: `${baseUrl}/payment-result?status=approved&id=${appointmentId}`,
-            failure: `${baseUrl}/payment-result?status=rejected&id=${appointmentId}`,
+            success: `${baseUrl}/payment-result?id=${appointmentId}`,
+            failure: `${baseUrl}/payment-result?id=${appointmentId}`,
           },
 
           auto_return: "approved",
@@ -103,21 +108,23 @@ exports.createMpPreference = onCall(
         }
       );
 
-      return {
-        init_point: response.data.init_point,
-      };
+      return { init_point: response.data.init_point };
+
     } catch (err) {
       console.error("🔥 MP CREATE ERROR:", err.response?.data || err);
       throw new HttpsError("internal", "Error creando preferencia");
     }
   }
 );
+
+
 /* =======================================================
-   WEBHOOK (confirmación real)
+   WEBHOOK (ÚNICA fuente de verdad)
 ======================================================= */
 exports.mpWebhook = onRequest(
   { secrets: ["MP_TOKEN"] },
   async (req, res) => {
+
     try {
       const paymentId = req.body?.data?.id;
       if (!paymentId) return res.status(200).send("ok");
@@ -127,9 +134,7 @@ exports.mpWebhook = onRequest(
       const mpRes = await axios.get(
         `https://api.mercadopago.com/v1/payments/${paymentId}`,
         {
-          headers: {
-            Authorization: `Bearer ${MP_TOKEN}`,
-          },
+          headers: { Authorization: `Bearer ${MP_TOKEN}` },
         }
       );
 
@@ -141,26 +146,37 @@ exports.mpWebhook = onRequest(
 
       if (!appointmentId) return res.status(200).send("ok");
 
-      const ref = admin.database().ref(`appointments/${appointmentId}`);
-      const snap = await ref.get();
+      const pendingRef =
+        admin.database().ref(`pendingPayments/${appointmentId}`);
 
+      const snap = await pendingRef.get();
       if (!snap.exists()) return res.status(200).send("ok");
 
-      const appointment = snap.val();
+      const data = snap.val();
 
-      if (Number(transaction_amount) !== Number(appointment.amount)) {
+      if (Number(transaction_amount) !== Number(data.amount)) {
         return res.status(200).send("ok");
       }
 
-      await ref.update({
-        paid: status === "approved",
-        paymentStatus: status,
-        paidAt: admin.database.ServerValue.TIMESTAMP,
-      });
+      /* 🔥 SOLO AQUÍ creamos la cita REAL */
+      if (status === "approved") {
+
+        await admin.database()
+          .ref(`appointments/${appointmentId}`)
+          .set({
+            ...data,
+            paid: true,
+            paymentStatus: "approved",
+            paidAt: admin.database.ServerValue.TIMESTAMP,
+          });
+
+        await pendingRef.remove();
+      }
 
       console.log("✅ webhook ok:", appointmentId, status);
 
       return res.status(200).send("ok");
+
     } catch (err) {
       console.error("🔥 WEBHOOK ERROR:", err);
       return res.status(200).send("ok");
@@ -169,6 +185,9 @@ exports.mpWebhook = onRequest(
 );
 
 
+/* =======================================================
+   OAUTH CONNECT BARBER
+======================================================= */
 exports.exchangeMpCode = onCall(
   { secrets: ["MP_TOKEN"] },
   async (request) => {
@@ -192,12 +211,10 @@ exports.exchangeMpCode = onCall(
         }
       );
 
-      const { access_token } = res.data;
-
       await admin.database()
         .ref(`barbers/${uid}`)
         .update({
-          mpAccessToken: access_token,
+          mpAccessToken: res.data.access_token,
           mpConnected: true,
         });
 
