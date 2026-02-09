@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
   final String clientName;
@@ -47,7 +48,7 @@ class PaymentSuccessScreen extends StatelessWidget {
 
               ElevatedButton(
                 onPressed: () =>
-                    Navigator.popUntil(context, (r) => r.isFirst),
+                    context.go('/'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   minimumSize: const Size(double.infinity, 50),

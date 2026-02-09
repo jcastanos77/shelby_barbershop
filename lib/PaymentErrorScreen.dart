@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class PaymentErrorScreen extends StatelessWidget {
   final String message;
@@ -39,7 +40,7 @@ class PaymentErrorScreen extends StatelessWidget {
               const SizedBox(height: 28),
 
               ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.go('/'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   minimumSize: const Size(double.infinity, 50),
