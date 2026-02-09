@@ -98,7 +98,7 @@ exports.createMpPreference = onCall(
         },
         {
           headers: {
-            Authorization: `Bearer ${barberToken}`, // 🔥 AQUÍ EL CAMBIO
+            Authorization: `Bearer ${barberToken}`,
           },
         }
       );

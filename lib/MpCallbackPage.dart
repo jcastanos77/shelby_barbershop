@@ -9,6 +9,7 @@ class MpCallbackPage extends StatefulWidget {
 }
 
 class _MpCallbackPageState extends State<MpCallbackPage> {
+
   @override
   void initState() {
     super.initState();
@@ -22,30 +23,49 @@ class _MpCallbackPageState extends State<MpCallbackPage> {
     final uid = uri.queryParameters['state'];
 
     if (code == null || uid == null) {
-      Navigator.pop(context);
+      _goHome();
       return;
     }
 
     try {
-      final callable = FirebaseFunctions.instance
-          .httpsCallable('exchangeMpCode');
+      final callable =
+      FirebaseFunctions.instance.httpsCallable('exchangeMpCode');
 
       await callable.call({
         'code': code,
         'uid': uid,
       });
+      _goHome();
 
-      Navigator.pop(context); // regresa dashboard
     } catch (e) {
-      Navigator.pop(context);
+      _goHome();
     }
+  }
+
+  void _goHome() {
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/', // tu dashboard/root
+          (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
+      backgroundColor: Color(0xFF0F0F0F),
       body: Center(
-        child: CircularProgressIndicator(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(
+              "Conectando Mercado Pago...",
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
       ),
     );
   }
