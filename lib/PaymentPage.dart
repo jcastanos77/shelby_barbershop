@@ -23,27 +23,9 @@ class PaymentPage extends StatelessWidget {
   });
 
   Future<void> _pay(BuildContext context) async {
-    late String checkoutUrl;
-    final db = FirebaseDatabase.instance.ref();
-    final appointmentId = db.child('appointments').push().key;
-
     try {
-
-      if (appointmentId == null) {
-        throw Exception('No se pudo generar appointmentId');
-      }
-
-      await db.child('appointments/$appointmentId').set({
-        'barberId': barberId,
-        'clientName': clientName,
-        'service': service,
-        'dateKey': dateKey,
-        'hourKey': hourKey,
-        'amount': totalAmount,
-        'paid': false,
-        'paymentStatus': 'pending_payment',
-        'createdAt': ServerValue.timestamp,
-      });
+      final appointmentId =
+          FirebaseDatabase.instance.ref().push().key;
 
       final callable = FirebaseFunctions.instanceFor(
         region: 'us-central1',
@@ -59,12 +41,13 @@ class PaymentPage extends StatelessWidget {
         'service': service,
       });
 
-      checkoutUrl = result.data['init_point'];
-      debugPrint("✅ CHECKOUT URL: $checkoutUrl");
+      final checkoutUrl = result.data['init_point'];
 
+      await launchUrl(
+        Uri.parse(checkoutUrl),
+        webOnlyWindowName: '_self',
+      );
     } catch (e) {
-      print(e);
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -73,17 +56,8 @@ class PaymentPage extends StatelessWidget {
           ),
         ),
       );
-      return;
     }
-
-    // 🚀 REDIRECCIÓN FUERA DEL TRY
-    await launchUrl(
-      Uri.parse(checkoutUrl),
-      webOnlyWindowName: '_self',
-    );
-
   }
-
 
   @override
   Widget build(BuildContext context) {

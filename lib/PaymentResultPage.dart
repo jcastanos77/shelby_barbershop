@@ -35,7 +35,6 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
 
     final ref = FirebaseDatabase.instance.ref('appointments/$appointmentId');
 
-    // 🔥 timeout anti spinner infinito
     Future.delayed(const Duration(seconds: 12), () {
       if (mounted) {
         context.go('/payment-error?msg=Pago no completado');
@@ -65,7 +64,6 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
         return;
       }
 
-      // 🔥 pendiente / efectivo / cancelado
       if (status == "pending" || status == "pending_payment") {
         _sub?.cancel();
         context.go('/payment-error?msg=Pago pendiente o cancelado');
