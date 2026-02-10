@@ -79,86 +79,39 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     super.dispose();
   }
 
-  Future<void> _loadAvailableSlots() async {
-    if (selectedDate == null || selectedBarberId == null) return;
+  Future<List<String>> _loadAvailableSlots() async {
+    final dateKey = formatDate(selectedDate!);
+    final barberId = selectedBarberId!;
 
-    setState(() => isLoadingSlots = true);
+    final dayHours = workingHours[selectedDate!.weekday] ?? [];
 
-    try {
-      final date = selectedDate!;
-      final barberId = selectedBarberId!;
-      final dateKey = formatDate(date);
+    final allSlots = dayHours
+        .map((h) => '${h.toString().padLeft(2, '0')}:00')
+        .toList();
 
-      final working = workingHours[date.weekday] ?? [];
+    final snap = await FirebaseDatabase.instance
+        .ref('appointments')
+        .orderByChild('barberId')
+        .equalTo(barberId)
+        .get();
 
-      // ✅ 1. generar SOLO horas en punto (mucho más simple)
-      final now = DateTime.now();
+    final occupied = <String>{};
 
-      final allSlots = working
-          .map((h) => DateTime(date.year, date.month, date.day, h))
-          .where((dt) => dt.isAfter(now))
-          .map((dt) => TimeOfDay(hour: dt.hour, minute: 0))
-          .toList();
+    if (snap.exists) {
+      final map = Map<String, dynamic>.from(snap.value as Map);
 
-      // ✅ 2. leer firebase una sola vez
-      final snap = await FirebaseDatabase.instance
-          .ref('appointments/$barberId/$dateKey')
-          .get();
+      for (final value in map.values) {
+        final appt = Map<String, dynamic>.from(value);
 
-      // si no hay citas, listo
-      if (!snap.exists) {
-        setState(() {
-          availableSlots = allSlots;
-          selectedTime = null;
-        });
-        return;
-      }
-
-      final data = Map<String, dynamic>.from(snap.value as Map);
-
-      // ✅ 3. sets son O(1) lookup (mucho más rápido que loops)
-      final taken = <String>{};
-      final blockedMinutes = <int>{};
-
-      for (final entry in data.entries) {
-        final v = Map<String, dynamic>.from(entry.value);
-
-        if (v['type'] == 'block') {
-          final from = _toMinutes(v['from']);
-          final to = _toMinutes(v['to']);
-
-          // marcar cada hora bloqueada
-          for (int m = from; m < to; m += 60) {
-            blockedMinutes.add(m);
-          }
-        } else {
-          taken.add(entry.key); // "10:00"
+        if (appt['dateKey'] == dateKey && appt['paid'] == true) {
+          occupied.add(appt['hourKey']);
         }
       }
-
-      // ✅ 4. filtrar en O(n)
-      final filtered = allSlots.where((slot) {
-        final str = formatHour(slot);
-        final min = slot.hour * 60;
-
-        return !taken.contains(str) && !blockedMinutes.contains(min);
-      }).toList();
-
-      setState(() {
-        availableSlots = filtered;
-        selectedTime = null;
-      });
-    } catch (e) {
-      _showSnackBar('Error cargando horarios', Colors.red);
-    } finally {
-      setState(() => isLoadingSlots = false);
     }
+
+    return allSlots.where((h) => !occupied.contains(h)).toList();
   }
 
-  int _toMinutes(String time) {
-    final p = time.split(':');
-    return int.parse(p[0]) * 60 + int.parse(p[1]);
-  }
 
   // Función para mostrar diálogo de confirmación de calendario
   Future<void> _showCalendarDialog(DateTime appointmentDateTime, int serviceDuration, String barberName) async {

@@ -71,7 +71,7 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Shelby´s BarberShop v1',
+      title: 'Shelby´s BarberShop v2',
       theme: ThemeData.dark(),
       routerConfig: _router,
     );
