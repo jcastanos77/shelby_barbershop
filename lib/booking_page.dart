@@ -79,8 +79,10 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     super.dispose();
   }
 
-  Future<List<TimeOfDay>> _loadAvailableSlots() async {
-    final slots = <TimeOfDay>[];
+  Future<void> _loadAvailableSlots() async {
+    if (selectedBarberId == null || selectedDate == null) return;
+
+    setState(() => isLoadingSlots = true);
 
     final barberId = selectedBarberId!;
     final dateKey = formatDate(selectedDate!);
@@ -93,6 +95,8 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         ? Map<String, dynamic>.from(snap.value as Map)
         : {};
 
+    final slots = <TimeOfDay>[];
+
     for (final hour in workingHours[selectedDate!.weekday]!) {
       final time = TimeOfDay(hour: hour, minute: 0);
       final hourKey = formatHour(time);
@@ -102,7 +106,10 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
       }
     }
 
-    return slots;
+    setState(() {
+      availableSlots = slots;
+      isLoadingSlots = false;
+    });
   }
 
   Future<void> _goToPayment() async {
@@ -118,7 +125,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     final dateKey = formatDate(selectedDate!);
     final hourKey = formatHour(selectedTime!);
 
-    final bool? paymentSuccess = await Navigator.push<bool>(
+    await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => PaymentPage(
