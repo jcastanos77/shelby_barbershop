@@ -80,24 +80,32 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
   }
 
   Future<void> _loadAvailableSlots() async {
-    if (selectedBarberId == null || selectedDate == null) return;
-
     setState(() => isLoadingSlots = true);
 
     final barberId = selectedBarberId!;
     final dateKey = formatDate(selectedDate!);
 
     final snap = await FirebaseDatabase.instance
-        .ref('appointments/$barberId/$dateKey')
+        .ref('appointments')
         .get();
 
-    final taken = snap.exists
-        ? Map<String, dynamic>.from(snap.value as Map)
-        : {};
+    final takenHours = <String>{};
+
+    if (snap.exists) {
+      final all = Map<String, dynamic>.from(snap.value as Map);
+
+      for (final value in all.values) {
+        final map = Map<String, dynamic>.from(value);
+
+        if (map['barberId'] == barberId &&
+            map['dateKey'] == dateKey &&
+            map['paid'] == true) {
+          takenHours.add(map['hourKey']);
+        }
+      }
+    }
 
     final now = DateTime.now();
-    final bufferNow = now.add(const Duration(minutes: 30));
-
     final slots = <TimeOfDay>[];
 
     for (final hour in workingHours[selectedDate!.weekday]!) {
@@ -108,17 +116,16 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         selectedDate!.year,
         selectedDate!.month,
         selectedDate!.day,
-        time.hour,
-        time.minute,
+        hour,
       );
 
-      // ❌ pasado o dentro del buffer
-      if (slotDateTime.isBefore(bufferNow)) continue;
+      // 🔥 bloquear pasado
+      if (slotDateTime.isBefore(now)) continue;
 
-      // ❌ ocupado
-      if (taken.containsKey(hourKey)) continue;
-
-      slots.add(time);
+      // 🔥 bloquear ocupados
+      if (!takenHours.contains(hourKey)) {
+        slots.add(time);
+      }
     }
 
     setState(() {
