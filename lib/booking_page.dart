@@ -79,139 +79,30 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     super.dispose();
   }
 
-  Future<List<String>> _loadAvailableSlots() async {
-    final dateKey = formatDate(selectedDate!);
+  Future<List<TimeOfDay>> _loadAvailableSlots() async {
+    final slots = <TimeOfDay>[];
+
     final barberId = selectedBarberId!;
-
-    final dayHours = workingHours[selectedDate!.weekday] ?? [];
-
-    final allSlots = dayHours
-        .map((h) => '${h.toString().padLeft(2, '0')}:00')
-        .toList();
+    final dateKey = formatDate(selectedDate!);
 
     final snap = await FirebaseDatabase.instance
-        .ref('appointments')
-        .orderByChild('barberId')
-        .equalTo(barberId)
+        .ref('appointments/$barberId/$dateKey')
         .get();
 
-    final occupied = <String>{};
+    final taken = snap.exists
+        ? Map<String, dynamic>.from(snap.value as Map)
+        : {};
 
-    if (snap.exists) {
-      final map = Map<String, dynamic>.from(snap.value as Map);
+    for (final hour in workingHours[selectedDate!.weekday]!) {
+      final time = TimeOfDay(hour: hour, minute: 0);
+      final hourKey = formatHour(time);
 
-      for (final value in map.values) {
-        final appt = Map<String, dynamic>.from(value);
-
-        if (appt['dateKey'] == dateKey && appt['paid'] == true) {
-          occupied.add(appt['hourKey']);
-        }
+      if (!taken.containsKey(hourKey)) {
+        slots.add(time);
       }
     }
 
-    return allSlots.where((h) => !occupied.contains(h)).toList();
-  }
-
-
-  // Función para mostrar diálogo de confirmación de calendario
-  Future<void> _showCalendarDialog(DateTime appointmentDateTime, int serviceDuration, String barberName) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            padding: EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [accentColor.withOpacity(0.1), accentColor.withOpacity(0.05)],
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [accentColor, accentColor.withOpacity(0.8)],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.calendar_month,
-                    color: Colors.white,
-                    size: 40,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  '¡Cita Confirmada!',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: darkBg,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: accentColor.withOpacity(0.3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '📅 ${appointmentDateTime.day}/${appointmentDateTime.month}/${appointmentDateTime.year}',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        '⏰ ${TimeOfDay.fromDateTime(appointmentDateTime).format(context)}',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        '✂️ $selectedService',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        '👨‍🦲 $barberName',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 24),
-                OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey[400]!),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: Text(
-                    'Cerrar',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    return slots;
   }
 
   Future<void> _goToPayment() async {
@@ -240,73 +131,6 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         ),
       ),
     );
-
-    if (paymentSuccess == true) {
-      await _saveAppointmentAfterPayment(totalAmount);
-    }
-  }
-
-  Future<void> _saveAppointmentAfterPayment(int depositAmount) async {
-    setState(() => isLoading = true);
-
-    final dateKey = formatDate(selectedDate!);
-    final hourKey = formatHour(selectedTime!);
-    final barberId = selectedBarberId!;
-
-    final service = widget.services.firstWhere((s) => s.name == selectedService);
-
-    final ref = FirebaseDatabase.instance
-        .ref('appointments/$barberId/$dateKey/$hourKey');
-
-    try {
-      final result = await ref.runTransaction((current) {
-        if (current != null) return Transaction.abort();
-
-        return Transaction.success({
-          'clientName': nameController.text,
-          'phone': phoneController.text,
-          'service': selectedService,
-          'price': service.price,
-          'duration': service.duration,
-          'status': 'confirmed',
-          'depositRequired': depositAmount,
-          'depositPaid': depositAmount,
-          'paymentStatus': 'paid',
-          'paymentMethod': 'online',
-          'createdAt': ServerValue.timestamp,
-        });
-      });
-
-      if (!result.committed) {
-        _showSnackBar('Ese horario ya fue reservado', Colors.red);
-        return;
-      }
-
-      final appointmentDateTime = DateTime(
-        selectedDate!.year,
-        selectedDate!.month,
-        selectedDate!.day,
-        selectedTime!.hour,
-        selectedTime!.minute,
-      );
-
-      final barberName =
-          widget.barbers.firstWhere((b) => b.id == barberId).name;
-
-      _showSnackBar('Cita confirmada con $barberName', Colors.green);
-
-      await _showCalendarDialog(
-        appointmentDateTime,
-        service.duration,
-        barberName,
-      );
-
-      _resetForm();
-    } catch (e) {
-      _showSnackBar('Error al guardar la cita', Colors.red);
-    } finally {
-      setState(() => isLoading = false);
-    }
   }
 
   void _showSnackBar(String message, Color color) {
@@ -318,19 +142,6 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
-  }
-
-  void _resetForm() {
-    nameController.clear();
-    phoneController.clear();
-    setState(() {
-      selectedService = widget.services.first.name;
-      selectedBarberId = null;
-      selectedDate = null;
-      selectedTime = null;
-      availableSlots = [];
-      currentStep = 0;
-    });
   }
 
   @override
@@ -846,7 +657,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           controller: nameController,
           label: "Nombre completo",
           icon: Icons.person,
-          hint: "Ej. Juan Pérez",
+          hint: "Ej. Fernando Badilla",
         ),
         SizedBox(height: 20),
         _buildTextField(

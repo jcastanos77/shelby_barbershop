@@ -91,9 +91,7 @@ exports.createMpPreference = onCall(
             ],
             installments: 1
           },
-
           application_fee: 5,
-
           back_urls: {
             success: `${baseUrl}/payment-result?id=${appointmentId}`,
             failure: `${baseUrl}/payment-result?id=${appointmentId}`,
@@ -183,7 +181,6 @@ exports.mpWebhook = onRequest(
     }
   }
 );
-
 
 /* =======================================================
    OAUTH CONNECT BARBER
