@@ -95,15 +95,30 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         ? Map<String, dynamic>.from(snap.value as Map)
         : {};
 
+    final now = DateTime.now();
+    final bufferNow = now.add(const Duration(minutes: 30));
+
     final slots = <TimeOfDay>[];
 
     for (final hour in workingHours[selectedDate!.weekday]!) {
       final time = TimeOfDay(hour: hour, minute: 0);
       final hourKey = formatHour(time);
 
-      if (!taken.containsKey(hourKey)) {
-        slots.add(time);
-      }
+      final slotDateTime = DateTime(
+        selectedDate!.year,
+        selectedDate!.month,
+        selectedDate!.day,
+        time.hour,
+        time.minute,
+      );
+
+      // ❌ pasado o dentro del buffer
+      if (slotDateTime.isBefore(bufferNow)) continue;
+
+      // ❌ ocupado
+      if (taken.containsKey(hourKey)) continue;
+
+      slots.add(time);
     }
 
     setState(() {
