@@ -422,11 +422,14 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
             color: Colors.grey.withOpacity(0.1),
             borderRadius: BorderRadius.circular(30),
           ),
-          child: Center(
-            child: Text(
-              'barber',
-              style: TextStyle(fontSize: 32),
-            ),
+          child: CircleAvatar(
+            radius: 30,
+            backgroundImage: barber.photoUrl.isNotEmpty
+                ? NetworkImage(barber.photoUrl)
+                : null,
+            child: barber.photoUrl.isEmpty
+                ? const Icon(Icons.person)
+                : null,
           ),
         ),
         title: Text(
