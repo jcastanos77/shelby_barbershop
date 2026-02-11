@@ -1,6 +1,7 @@
 import 'package:barbershop/services/LandingBarbersService.dart';
 import 'package:barbershop/services/LandingServicesService.dart';
 import 'package:barbershop/utils/bad_words_filter.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'booking_page.dart';
@@ -60,14 +61,7 @@ class _MainScaffoldState extends State<MainScaffold>
 
 
 
-  final List<String> galleryImages = const [
-    'assets/images/gallery1.jpg',
-    'assets/images/gallery2.jpg',
-    'assets/images/gallery3.jpg',
-    'assets/images/gallery4.jpg',
-    'assets/images/gallery5.jpg',
-    'assets/images/gallery6.jpg',
-  ];
+  final List<String> galleryImages = const [];
 
   void _setupAnimations() {
     _heroController = AnimationController(
@@ -716,7 +710,6 @@ class _MainScaffoldState extends State<MainScaffold>
     );
   }
 
-
   Widget _buildServiceCard(int index, ServiceModel serviceData) {
     return Container(
       height: 300,
@@ -878,27 +871,59 @@ class _MainScaffoldState extends State<MainScaffold>
 
   Widget _buildGallerySection(int crossAxisCount) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       child: Column(
         children: [
           _buildSectionHeader('NUESTRA GALERÍA', 'El arte de nuestro trabajo'),
-          SizedBox(height: 60),
-          AnimatedBuilder(
-            animation: _galleryController,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _galleryStagger.value,
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: galleryImages.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemBuilder: (_, i) => _buildGalleryItem(galleryImages[i], i),
-                )
+          const SizedBox(height: 60),
+
+          StreamBuilder(
+            stream: FirebaseDatabase.instance
+                .ref('barberGallery')
+                .onValue,
+            builder: (context, snapshot) {
+
+              if (!snapshot.hasData ||
+                  snapshot.data!.snapshot.value == null) {
+                return const Text(
+                  "Próximamente...",
+                  style: TextStyle(color: Colors.white54),
+                );
+              }
+
+              final raw = Map<String, dynamic>.from(
+                  snapshot.data!.snapshot.value as Map);
+
+              // 🔥 Aplanamos todas las galerías
+              final images = <String>[];
+
+              raw.forEach((_, barberImages) {
+                final map = Map<String, dynamic>.from(barberImages);
+                map.forEach((__, data) {
+                  images.add(data['url']);
+                });
+              });
+
+              return AnimatedBuilder(
+                animation: _galleryController,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _galleryStagger.value,
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: images.length,
+                      gridDelegate:
+                      SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemBuilder: (_, i) =>
+                          _buildGalleryItem(images[i], i),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -915,7 +940,7 @@ class _MainScaffoldState extends State<MainScaffold>
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
             blurRadius: 15,
-            offset: Offset(0, 8),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -924,9 +949,18 @@ class _MainScaffoldState extends State<MainScaffold>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
+            Image.network(
               url,
               fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  color: cardBg,
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              },
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   color: cardBg,
@@ -940,6 +974,8 @@ class _MainScaffoldState extends State<MainScaffold>
                 );
               },
             ),
+
+            // Overlay degradado
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -952,7 +988,6 @@ class _MainScaffoldState extends State<MainScaffold>
                 ),
               ),
             ),
-
           ],
         ),
       ),
