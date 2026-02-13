@@ -44,7 +44,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     7: [10, 11, 12, 13, 14, 15, 16], // Domingo
   };
 
-  String selectedService = "Corte de cabello";
+  String? selectedService;
   String? selectedBarberId;
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
@@ -156,7 +156,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           hourKey: hourKey,
           totalAmount: totalAmount,
           clientName: nameController.text,
-          service: selectedService,
+          service: selectedService ?? "",
         ),
       ),
     );
@@ -192,21 +192,45 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         centerTitle: true,
         iconTheme: IconThemeData(color: accentColor),
       ),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildProgressIndicator(),
-              SizedBox(height: 30),
-              _buildStepContent(),
-              SizedBox(height: 40),
-              _buildNavigationButtons(),
-            ],
+      body: Column(
+        children: [
+          Expanded(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildProgressIndicator(),
+                    SizedBox(height: 30),
+                    _buildStepContent(),
+                    SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+
+
+          SafeArea(
+            top: false,
+            child: Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: darkBg,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: _buildNavigationButtons(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -445,7 +469,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           children: [
             SizedBox(height: 5),
             Text(
-              "Experiencia: ${6 }años",
+              "Experiencia: ${6} años",
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 14,
@@ -708,7 +732,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
 
   Widget _buildSummaryCard() {
 
-    if (selectedService.isEmpty || selectedBarberId == null || selectedDate == null || selectedTime == null) {
+    if (selectedService == null || selectedBarberId == null || selectedDate == null || selectedTime == null) {
       return Container();
     }
 
@@ -744,7 +768,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
             ),
           ),
           SizedBox(height: 16),
-          _buildSummaryRow("Servicio", selectedService, ""),
+          _buildSummaryRow("Servicio", selectedService ?? "", ""),
           _buildSummaryRow("Precio total", "\$${service.price}", ""),
           _buildSummaryRow("Barbero", barber.name, ""),
           _buildSummaryRow(
@@ -957,7 +981,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
   bool _canProceedToNext() {
     switch (currentStep) {
       case 0:
-        return selectedService.isNotEmpty;
+        return selectedService != null;
       case 1:
         return selectedBarberId != null;
       case 2:
