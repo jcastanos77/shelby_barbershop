@@ -392,102 +392,115 @@ class _MainScaffoldState extends State<MainScaffold>
   }
 
   Widget _buildServicesSection(bool isMobile) {
+
+    final specials = servicesF.where((s) => s.isSpecial == true).toList();
+    final classics = servicesF.where((s) => s.isSpecial != true).toList();
+
     return Container(
       padding: EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildSectionHeader('NUESTROS SERVICIOS ESPECIALES', 'La experiencia que mereces'),
-          SizedBox(height: 60),
-          AnimatedBuilder(
-            animation: _servicesController,
-            builder: (context, child) {
-              return _buildMobileServices();
-            },
-          ),
-          SizedBox(height: 20),
-         _buildSectionHeader('NUESTROS SERVICIOS CLASICOS', 'Lo mejor de la ciudad'),
-          SizedBox(height: 20),
-        AnimatedBuilder(
-            animation: _servicesController,
-            builder: (context, child) {
-              return _buildClasicServices();
-            }),
+
+          /// 🔥 ESPECIALES (slider grande)
+          if (specials.isNotEmpty) ...[
+            _buildSectionHeader('SERVICIOS PREMIUM', 'Eleva tu estilo'),
+            SizedBox(height: 40),
+            _buildMobileServicesFromList(specials),
+            SizedBox(height: 60),
+          ],
+
+          /// ✂️ CLÁSICOS (grid compacto)
+          if (classics.isNotEmpty) ...[
+            _buildSectionHeader('SERVICIOS CLÁSICOS', 'Lo mejor de la ciudad'),
+            SizedBox(height: 30),
+            _buildClassicGrid(classics),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildClasicServices(){
-    return Container(
-      child: ListView.builder(
-        shrinkWrap: true,
-        physics: NeverScrollableScrollPhysics(),
-        itemCount: servicesF.length,
+  Widget _buildMobileServicesFromList(List<ServiceModel> list) {
+    return SizedBox(
+      height: 320,
+      child: PageView.builder(
+        padEnds: false,
+        controller: _servicesPageController,
+        itemCount: list.length,
         itemBuilder: (context, index) {
-          final servicio = servicesF[index];
           return Container(
-            height: 90,
-            margin: EdgeInsets.only(bottom: 12.0),
-            child: Card(
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
+            margin: EdgeInsets.symmetric(horizontal: 8),
+            child: _buildServiceCard(index, list[index]),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildClassicGrid(List<ServiceModel> list) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      itemCount: list.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 2.6,
+      ),
+      itemBuilder: (context, index) {
+        final servicio = list[index];
+
+        return GestureDetector(
+          onTap: () {
+            _mostrarDetalleServicio(
+              context,
+              Servicio(
+                nombre: servicio.name,
+                precio: '\$${servicio.price}',
+                descriptionLarge: servicio.description,
+                color: accentColor,
               ),
-              child: Center(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.all(12),
-                    leading: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.content_cut,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    title: Text(
-                      servicio.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    trailing: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '\$${servicio.price}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+            );
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: accentColor.withOpacity(0.3),
               ),
             ),
-          );
-          },
-      ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  servicio.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  '\$${servicio.price}',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -679,34 +692,6 @@ class _MainScaffoldState extends State<MainScaffold>
           ),
         );
       },
-    );
-  }
-
-  Widget _buildMobileServices() {
-    final filtered = servicesF
-        .where((s) => s.isSpecial == true)
-        .toList();
-
-    if (filtered.isEmpty) {
-      return const SizedBox();
-    }
-
-    return SizedBox(
-      height: 350,
-      child: PageView.builder(
-        padEnds: false,
-        itemCount: filtered.length,
-        controller: _servicesPageController,
-        itemBuilder: (context, index) {
-          return Transform.scale(
-            scale: _servicesStagger.value,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              child: _buildServiceCard(index, filtered[index]),
-            ),
-          );
-        },
-      ),
     );
   }
 

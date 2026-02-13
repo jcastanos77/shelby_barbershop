@@ -182,7 +182,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           "Agendar Cita",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 24,
+            fontSize: 22,
             color: accentColor,
           ),
         ),
@@ -194,16 +194,24 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
       ),
       body: Column(
         children: [
+
+          /// 🔥 PROGRESS FIJO ARRIBA
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            color: darkBg,
+            child: _buildProgressIndicator(),
+          ),
+
+          /// 🔥 CONTENIDO SCROLLEABLE
           Expanded(
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(20),
+                padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildProgressIndicator(),
-                    SizedBox(height: 30),
+                    SizedBox(height: 20),
                     _buildStepContent(),
                     SizedBox(height: 20),
                   ],
@@ -212,7 +220,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
             ),
           ),
 
-
+          /// 🔥 FOOTER FIJO ABAJO
           SafeArea(
             top: false,
             child: Container(
@@ -234,6 +242,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
       ),
     );
   }
+
 
   Widget _buildProgressIndicator() {
     return Container(
@@ -328,80 +337,68 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle("Selecciona tu Servicio"),
+        _buildSectionTitle("¿Qué te vas a hacer hoy?"),
         SizedBox(height: 20),
-        ...widget.services.map((service) => _buildServiceCard(service)).toList(),
+
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: widget.services.map((service) {
+            final bool isSelected = selectedService == service.name;
+
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  selectedService = service.name;
+                  selectedTime = null;
+                  availableSlots = [];
+                });
+              },
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 200),
+                padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  color: isSelected ? accentColor : cardBg,
+                  border: Border.all(
+                    color: isSelected
+                        ? accentColor
+                        : Colors.grey[800]!,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.content_cut,
+                      size: 18,
+                      color: isSelected ? darkBg : accentColor,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      service.name,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      "\$${service.price}",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? darkBg : accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ],
-    );
-  }
-
-  Widget _buildServiceCard(ServiceModel service) {
-    bool isSelected = selectedService == service.name;
-
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 200),
-      margin: EdgeInsets.only(bottom: 15),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isSelected ? Colors.grey : Colors.grey[600]!,
-          width: isSelected ? 3 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.all(20),
-        leading: Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            Icons.cut,
-            color: Colors.grey,
-            size: 32,
-          ),
-        ),
-        title: Text(
-          service.name,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: Colors.white,
-          ),
-        ),
-        subtitle: Text(
-          "${service.duration} min",
-          style: TextStyle(
-            color: Colors.grey[400],
-            fontSize: 14,
-          ),
-        ),
-        trailing: Text(
-          '\$${service.price}',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        onTap: () {
-          setState(() {
-            selectedService = service.name;
-            // Reset selections that depend on service
-            selectedTime = null;
-            availableSlots = [];
-          });
-        },
-      ),
     );
   }
 
