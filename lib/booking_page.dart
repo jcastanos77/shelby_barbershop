@@ -25,7 +25,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
   final Color accentColor = const Color(0xFFC9A23F);
   final Color darkBg = const Color(0xFF0F0F0F);
   final Color cardBg = const Color(0xFF1A1A1A);
-
+  bool isFullDayBlocked = false;
   String formatDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
@@ -80,7 +80,12 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
   }
 
   Future<void> _loadAvailableSlots() async {
-    setState(() => isLoadingSlots = true);
+    if (selectedBarberId == null || selectedDate == null) return;
+
+    setState(() {
+      isLoadingSlots = true;
+      isFullDayBlocked = false;
+    });
 
     final barberId = selectedBarberId!;
     final dateKey = formatDate(selectedDate!);
@@ -90,25 +95,55 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         .get();
 
     final takenHours = <String>{};
+    int blockCount = 0;
 
-    if (snap.exists) {
-      final all = Map<String, dynamic>.from(snap.value as Map);
+    if (snap.exists && snap.value != null) {
+
+      final all = Map<String, dynamic>.from(
+          snap.value as Map<dynamic, dynamic>);
 
       for (final value in all.values) {
+
         final map = Map<String, dynamic>.from(value);
 
-        if (map['barberId'] == barberId &&
-            map['dateKey'] == dateKey &&
-            map['paid'] == true) {
-          takenHours.add(map['hourKey']);
+        if (map['barberId'] != barberId) continue;
+        if (map['dateKey'] != dateKey) continue;
+
+        // 🔴 Detectar bloques de día completo
+        if (map['type'] == 'block' &&
+            map['paymentStatus'] == 'blocked_day') {
+          blockCount++;
+        }
+
+        // 🔥 Bloquear citas pagadas o bloqueos por hora
+        if (map['paid'] == true ||
+            map['type'] == 'block') {
+
+          if (map['hourKey'] != null) {
+            takenHours.add(map['hourKey']);
+          }
         }
       }
+    }
+
+    final totalWorkingHours =
+        workingHours[selectedDate!.weekday]!.length;
+
+    // 🔴 Si todas las horas están bloqueadas → día cerrado
+    if (blockCount >= totalWorkingHours) {
+      setState(() {
+        isFullDayBlocked = true;
+        availableSlots = [];
+        isLoadingSlots = false;
+      });
+      return;
     }
 
     final now = DateTime.now();
     final slots = <TimeOfDay>[];
 
     for (final hour in workingHours[selectedDate!.weekday]!) {
+
       final time = TimeOfDay(hour: hour, minute: 0);
       final hourKey = formatHour(time);
 
@@ -119,10 +154,10 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
         hour,
       );
 
-      // 🔥 bloquear pasado
+      // 🔥 Bloquear horas pasadas
       if (slotDateTime.isBefore(now)) continue;
 
-      // 🔥 bloquear ocupados
+      // 🔥 Bloquear ocupadas
       if (!takenHours.contains(hourKey)) {
         slots.add(time);
       }
@@ -130,6 +165,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
 
     setState(() {
       availableSlots = slots;
+      isFullDayBlocked = false;
       isLoadingSlots = false;
     });
   }
@@ -518,7 +554,31 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
             Expanded(child: _buildTimeSelector()),
           ],
         ),
-        if (availableSlots.isNotEmpty) ...[
+         if (isFullDayBlocked)
+          Container(
+            margin: const EdgeInsets.only(top: 30),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.red.shade100,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.red),
+            ),
+            child: Column(
+              children: const [
+                Icon(Icons.event_busy, color: Colors.red, size: 40),
+                SizedBox(height: 10),
+                Text(
+                  "Este barbero no estará disponible este día.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (availableSlots.isNotEmpty) ...[
           SizedBox(height: 30),
           _buildSectionTitle("Horarios Disponibles"),
           SizedBox(height: 15),
