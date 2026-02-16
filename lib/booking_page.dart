@@ -211,7 +211,13 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+
+    final bool isKeyboardOpen =
+        MediaQuery.of(context).viewInsets.bottom > 0;
+
+
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: darkBg,
       appBar: AppBar(
         title: Text(
@@ -243,6 +249,8 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -257,23 +265,30 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           ),
 
           /// 🔥 FOOTER FIJO ABAJO
-          SafeArea(
-            top: false,
-            child: Container(
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: darkBg,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
-                    blurRadius: 12,
-                    offset: Offset(0, -4),
-                  ),
-                ],
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: isKeyboardOpen
+                ? const SizedBox.shrink()
+                : SafeArea(
+              top: false,
+              child: Container(
+                key: const ValueKey("footer"),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: darkBg,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: _buildNavigationButtons(),
               ),
-              child: _buildNavigationButtons(),
             ),
           ),
+
         ],
       ),
     );

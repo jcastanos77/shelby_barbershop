@@ -66,7 +66,7 @@ exports.createMpPreference = onCall(
 
     const barberToken = barberSnap.val().mpAccessToken;
 
-    const baseUrl = "https://neon-seahorse-b85142.netlify.app";
+    const baseUrl = "https://shelbybarber.net";
 
     try {
       const response = await axios.post(
@@ -204,7 +204,7 @@ exports.exchangeMpCode = onCall(
           grant_type: "authorization_code",
           client_secret: MP_TOKEN,
           code,
-          redirect_uri: "https://dashboardshelby.netlify.app/mp-callback",
+          redirect_uri: "https://shelbybarber.net/mp-callback",
         }
       );
 
