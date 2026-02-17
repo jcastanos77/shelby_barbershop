@@ -27,14 +27,17 @@ class PaymentPage extends StatefulWidget {
 }
 
 class _PaymentPageState extends State<PaymentPage> {
+
   bool processing = false;
 
   Future<void> _pay() async {
-    if (processing) return;
+
+    if (processing) return; // 🔥 evita doble click
 
     setState(() => processing = true);
 
     try {
+
       final appointmentId =
           FirebaseDatabase.instance.ref().push().key;
 
@@ -56,10 +59,10 @@ class _PaymentPageState extends State<PaymentPage> {
 
       await launchUrl(
         Uri.parse(checkoutUrl),
-        webOnlyWindowName: '_self',
+        mode: LaunchMode.externalApplication,
       );
+
     } catch (e) {
-      if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
@@ -69,15 +72,17 @@ class _PaymentPageState extends State<PaymentPage> {
           ),
         ),
       );
-    }
 
-    if (mounted) {
-      setState(() => processing = false);
+    } finally {
+      if (mounted) {
+        setState(() => processing = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
@@ -94,10 +99,28 @@ class _PaymentPageState extends State<PaymentPage> {
             decoration: BoxDecoration(
               color: const Color(0xFF1A1A1A),
               borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.6),
+                  blurRadius: 20,
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+
+                const Text(
+                  "Anticipo",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
                 Text(
                   "\$${widget.totalAmount}",
                   style: const TextStyle(
@@ -106,6 +129,14 @@ class _PaymentPageState extends State<PaymentPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
+                const SizedBox(height: 20),
+                const Divider(color: Colors.white12),
+
+                _infoRow("Cliente", widget.clientName),
+                _infoRow("Servicio", widget.service),
+                _infoRow("Fecha", widget.dateKey),
+                _infoRow("Hora", widget.hourKey),
 
                 const SizedBox(height: 30),
 
@@ -116,16 +147,12 @@ class _PaymentPageState extends State<PaymentPage> {
                     onPressed: processing ? null : _pay,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: processing
-                        ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
+                        ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
                       "Pagar con Mercado Pago",
                       style: TextStyle(
@@ -136,10 +163,35 @@ class _PaymentPageState extends State<PaymentPage> {
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 12),
+
+                const Center(
+                  child: Text(
+                    "Pago seguro · Se confirmará automáticamente",
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white54)),
+          Text(value, style: const TextStyle(color: Colors.white)),
+        ],
       ),
     );
   }
