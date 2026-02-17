@@ -204,7 +204,7 @@ exports.exchangeMpCode = onCall(
           grant_type: "authorization_code",
           client_secret: MP_TOKEN,
           code,
-          redirect_uri: "https://shelbybarber.net/mp-callback",
+          redirect_uri: "https://dashboardshelby.netlify.app/mp-callback",
         }
       );
 
