@@ -36,6 +36,8 @@ class _MainScaffoldState extends State<MainScaffold>
   late final PageController _servicesPageController;
   late final PageController _reviewsPageController;
   late final PageController _reviewsSkeletonController;
+  late final PageController _announcementController;
+  int _currentAnnouncement = 0;
 
   List<ServiceModel> servicesF = [];
   List<BarberModel> barbers = [];
@@ -50,8 +52,17 @@ class _MainScaffoldState extends State<MainScaffold>
     _servicesPageController = PageController(viewportFraction: 0.85);
     _reviewsPageController = PageController(viewportFraction: .9);
     _reviewsSkeletonController = PageController(viewportFraction: .9);
-  }
+    _announcementController = PageController(viewportFraction: 0.9);
 
+    _announcementController.addListener(() {
+      final page = _announcementController.page?.round() ?? 0;
+      if (page != _currentAnnouncement) {
+        setState(() {
+          _currentAnnouncement = page;
+        });
+      }
+    });
+  }
   Future<void> load() async {
     servicesF = await _servicesService.getServices();
     barbers = await _barbersService.getBarbers();
@@ -168,6 +179,7 @@ class _MainScaffoldState extends State<MainScaffold>
     _servicesPageController.dispose();
     _reviewsPageController.dispose();
     _reviewsSkeletonController.dispose();
+    _announcementController.dispose();
     super.dispose();
   }
 
@@ -213,6 +225,7 @@ class _MainScaffoldState extends State<MainScaffold>
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: _buildHeroSection(screenHeight)),
+          SliverToBoxAdapter(child: _buildAnnouncementsSection()),
           SliverToBoxAdapter(child: _buildServicesSection(isMobile)),
           SliverToBoxAdapter(child: _buildStatsSection()),
           SliverToBoxAdapter(child: _buildGallerySection(galleryCrossAxisCount)),
@@ -387,6 +400,246 @@ class _MainScaffoldState extends State<MainScaffold>
             ),
           ),
         ],
+      ),
+    );
+  }
+  Widget _buildAnnouncementsSection() {
+    return StreamBuilder(
+      stream: FirebaseDatabase.instance.ref('announcements').onValue,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData ||
+            snapshot.data!.snapshot.value == null) {
+          return const SizedBox();
+        }
+
+        final raw = Map<String, dynamic>.from(
+            snapshot.data!.snapshot.value as Map);
+
+        final announcements = raw.values.where((e) =>
+        e['active'] == true &&
+            (e['expiresAt'] == null ||
+                DateTime.now().millisecondsSinceEpoch <
+                    e['expiresAt'])).toList();
+
+        if (announcements.isEmpty) return const SizedBox();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60),
+          child: Column(
+            children: [
+              _buildSectionHeader(
+                "NOVEDADES",
+                "Lo último en Shelby's BarberShop",
+              ),
+              const SizedBox(height: 40),
+
+              /// 🔥 SOLO 1 ITEM
+              if (announcements.length == 1)
+                Padding(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildAnnouncementCard(
+                      announcements.first),
+                )
+
+              /// 🔥 2+ ITEMS = CARRUSEL
+              else
+                Column(
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context)
+                          .size
+                          .width *
+                          0.56,
+                      child: PageView.builder(
+                        controller:
+                        _announcementController,
+                        itemCount:
+                        announcements.length,
+                        itemBuilder: (_, i) {
+                          return Padding(
+                            padding:
+                            const EdgeInsets.symmetric(
+                                horizontal: 8),
+                            child:
+                            _buildAnnouncementCard(
+                                announcements[i]),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    /// 🔥 DOTS
+                    Row(
+                      mainAxisAlignment:
+                      MainAxisAlignment.center,
+                      children: List.generate(
+                        announcements.length,
+                            (index) => AnimatedContainer(
+                          duration:
+                          const Duration(milliseconds: 300),
+                          margin:
+                          const EdgeInsets.symmetric(
+                              horizontal: 4),
+                          width: _currentAnnouncement ==
+                              index
+                              ? 18
+                              : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _currentAnnouncement ==
+                                index
+                                ? accentColor
+                                : Colors.white24,
+                            borderRadius:
+                            BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAnnouncementCard(Map item) {
+    final type = item['type'] ?? 'aviso';
+
+    Color badgeColor;
+    String badgeText;
+
+    switch (type) {
+      case 'promo':
+        badgeColor = Colors.red;
+        badgeText = "OFERTA";
+        break;
+      case 'clase':
+        badgeColor = accentColor;
+        badgeText = "CURSO";
+        break;
+      default:
+        badgeColor = Colors.blueGrey;
+        badgeText = "AVISO";
+    }
+
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(25),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              item['imageUrl'],
+              fit: BoxFit.cover,
+            ),
+
+            /// overlay oscuro
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.7),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+
+            /// badge
+            Positioned(
+              top: 16,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  borderRadius:
+                  BorderRadius.circular(20),
+                ),
+                child: Text(
+                  badgeText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+
+            /// texto
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item['title'] ?? "",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item['subtitle'] ?? "",
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  /// CTA
+                  if ((item['ctaText'] ?? "").isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        if (type == "promo") {
+                          // ir a booking
+                        }
+                        if (type == "clase") {
+                          // abrir whatsapp o formulario
+                        }
+                      },
+                      child: Container(
+                        padding:
+                        const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 8),
+                        decoration: BoxDecoration(
+                          color: accentColor,
+                          borderRadius:
+                          BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          item['ctaText'],
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight:
+                            FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
