@@ -59,7 +59,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
       await launchUrl(
         Uri.parse(checkoutUrl),
-        mode: LaunchMode.externalApplication,
+        webOnlyWindowName:  "_self",
       );
 
     } catch (e) {
