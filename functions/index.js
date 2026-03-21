@@ -31,6 +31,7 @@ exports.createMpPreference = onCall(
       clientName,
       service,
       appointmentId,
+      phone
     } = request.data || {};
 
     if (!appointmentId) {
@@ -51,6 +52,7 @@ exports.createMpPreference = onCall(
       hourKey,
       amount: parsedAmount,
       createdAt: admin.database.ServerValue.TIMESTAMP,
+      phone
     });
 
     const barberSnap = await admin.database()

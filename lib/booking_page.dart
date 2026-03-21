@@ -193,6 +193,7 @@ class _BookingPageState extends State<BookingPage> with TickerProviderStateMixin
           totalAmount: totalAmount,
           clientName: nameController.text,
           service: selectedService ?? "",
+          phone: phoneController.text,
         ),
       ),
     );

@@ -11,6 +11,7 @@ class PaymentPage extends StatefulWidget {
   final String hourKey;
   final String clientName;
   final String service;
+  final String phone;
 
   const PaymentPage({
     super.key,
@@ -20,6 +21,7 @@ class PaymentPage extends StatefulWidget {
     required this.hourKey,
     required this.clientName,
     required this.service,
+    required this.phone
   });
 
   @override
@@ -53,6 +55,7 @@ class _PaymentPageState extends State<PaymentPage> {
         'hourKey': widget.hourKey,
         'clientName': widget.clientName,
         'service': widget.service,
+        'phone': widget.phone
       });
 
       final checkoutUrl = result.data['init_point'];
